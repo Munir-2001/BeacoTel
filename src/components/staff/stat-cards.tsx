@@ -1,32 +1,32 @@
 import { Users, Zap, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { STAFF_STATS } from "@/lib/staff-data";
+import type { StaffStats as StaffStatsData } from "@/lib/staff/admin";
 
-export function StaffStats() {
+export function StaffStats({ stats }: { stats: StaffStatsData }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         label="Total Personnel"
-        value={STAFF_STATS.totalPersonnel.toString()}
+        value={stats.totalPersonnel.toString()}
         icon={<Users className="size-5 text-sky-700" strokeWidth={1.75} />}
         iconBg="bg-sky-100"
       />
       <StatCard
         label="Active Now"
-        value={STAFF_STATS.activeNow.toString()}
+        value={stats.activeNow.toString()}
         icon={<Zap className="size-5 text-emerald-700 fill-emerald-700" strokeWidth={0} />}
         iconBg="bg-emerald-100"
         valueClassName="text-emerald-700"
       />
       <StatCard
         label="Admin Overrides"
-        value={STAFF_STATS.adminOverrides.toString()}
+        value={stats.adminOverrides.toString()}
         icon={<ShieldAlert className="size-5 text-indigo-700" strokeWidth={1.75} />}
         iconBg="bg-indigo-100"
       />
       <StatCard
-        label="Safety Status"
-        value={`${STAFF_STATS.safetyPct}%`}
+        label="Active %"
+        value={`${stats.safetyPct}%`}
         icon={<ShieldCheck className="size-5 text-indigo-700" strokeWidth={1.75} />}
         iconBg="bg-indigo-100"
       />

@@ -1,0 +1,22 @@
+# Env files — secrets live in Vercel project env vars, never in the bundle.
+.env
+.env.*
+.env.example
+
+# Local Supabase config / setup docs — not needed in deploy.
+supabase/
+SUPABASE_SETUP.md
+
+# Repo docs — not needed at runtime.
+AGENTS.md
+CLAUDE.md
+README.md
+
+# Build / tooling artifacts (most also in .gitignore, listed here for safety).
+node_modules/
+.next/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+.git/
+.DS_Store

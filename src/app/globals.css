@@ -132,3 +132,18 @@
     @apply font-sans;
   }
 }
+
+/* ---------- Beacotel loader animations ---------- */
+@keyframes beacon-ping {
+  0%   { transform: scale(0.55); opacity: 0.9; }
+  80%  { opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes beacon-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+@keyframes beacon-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

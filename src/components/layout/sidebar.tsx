@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, LogOut, Radar } from "lucide-react";
+import { LifeBuoy, Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_CTA, NAV_ITEMS } from "@/lib/nav";
 import type { Resource } from "@/lib/auth/permissions";
-import { logout } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
+import { LogoutButton } from "@/components/layout/logout-button";
 
 export function Sidebar({
   readableResources,
@@ -90,15 +90,7 @@ export function Sidebar({
             </button>
           </li>
           <li>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/75 hover:bg-secondary hover:text-foreground"
-              >
-                <LogOut className="size-[18px] text-foreground/55" strokeWidth={1.75} />
-                Log Out
-              </button>
-            </form>
+            <LogoutButton />
           </li>
         </ul>
       </div>

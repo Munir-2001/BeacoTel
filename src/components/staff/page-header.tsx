@@ -2,7 +2,13 @@ import Link from "next/link";
 import { ChevronRight, Download, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function StaffPageHeader({ onAdd }: { onAdd: () => void }) {
+export function StaffPageHeader({
+  onAdd,
+  canCreate = true,
+}: {
+  onAdd: () => void;
+  canCreate?: boolean;
+}) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-6">
       <div className="max-w-2xl">
@@ -30,13 +36,15 @@ export function StaffPageHeader({ onAdd }: { onAdd: () => void }) {
           <Download className="size-4" strokeWidth={1.75} />
           Export
         </Button>
-        <Button
-          onClick={onAdd}
-          className="h-12 gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
-        >
-          <UserPlus className="size-4" strokeWidth={2} />
-          Add New Staff
-        </Button>
+        {canCreate ? (
+          <Button
+            onClick={onAdd}
+            className="h-12 gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            <UserPlus className="size-4" strokeWidth={2} />
+            Add New Staff
+          </Button>
+        ) : null}
       </div>
     </header>
   );

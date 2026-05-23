@@ -1,77 +1,49 @@
-export type StaffRole = "admin" | "manager" | "staff";
+import type { Role } from "@/lib/auth/permissions";
+
+export type StaffRole = Role;
 export type StaffStatus = "active" | "inactive";
-
-export type StaffMember = {
-  id: string;
-  employeeId: string;
-  name: string;
-  department: string;
-  role: StaffRole;
-  status: StaffStatus;
-  email: string;
-  initials: string;
-  avatarTint: string;
-};
-
-export const STAFF_STATS = {
-  totalPersonnel: 142,
-  activeNow: 86,
-  adminOverrides: 12,
-  safetyPct: 100,
-};
-
-export const STAFF_ROWS: StaffMember[] = [
-  {
-    id: "s1",
-    employeeId: "EMP-90210",
-    name: "Marcus Vane",
-    department: "Front Desk",
-    role: "manager",
-    status: "active",
-    email: "marcus.vane@grandarch.com",
-    initials: "MV",
-    avatarTint: "bg-sky-100 text-sky-700",
-  },
-  {
-    id: "s2",
-    employeeId: "EMP-88421",
-    name: "Elena Rodriguez",
-    department: "Security",
-    role: "staff",
-    status: "inactive",
-    email: "elena.rodriguez@grandarch.com",
-    initials: "ER",
-    avatarTint: "bg-amber-100 text-amber-700",
-  },
-  {
-    id: "s3",
-    employeeId: "EMP-77123",
-    name: "Julian Thorne",
-    department: "IT Operations",
-    role: "admin",
-    status: "active",
-    email: "julian.thorne@grandarch.com",
-    initials: "JT",
-    avatarTint: "bg-indigo-100 text-indigo-700",
-  },
-  {
-    id: "s4",
-    employeeId: "EMP-66014",
-    name: "Sasha Kim",
-    department: "Concierge",
-    role: "staff",
-    status: "active",
-    email: "sasha.kim@grandarch.com",
-    initials: "SK",
-    avatarTint: "bg-emerald-100 text-emerald-700",
-  },
-];
 
 export const ROLE_OPTIONS: { value: StaffRole; label: string }[] = [
   { value: "admin", label: "Admin" },
   { value: "manager", label: "Manager" },
   { value: "staff", label: "Staff" },
 ];
+
+/** Mirrors `public.department` in Supabase (migration 0003). */
+export type Department =
+  | "front_desk"
+  | "security"
+  | "concierge"
+  | "housekeeping"
+  | "it_operations"
+  | "maintenance"
+  | "food_beverage"
+  | "spa_wellness";
+
+export const ALL_DEPARTMENTS: Department[] = [
+  "front_desk",
+  "security",
+  "concierge",
+  "housekeeping",
+  "it_operations",
+  "maintenance",
+  "food_beverage",
+  "spa_wellness",
+];
+
+export const DEPARTMENT_LABEL: Record<Department, string> = {
+  front_desk: "Front Desk",
+  security: "Security",
+  concierge: "Concierge",
+  housekeeping: "Housekeeping",
+  it_operations: "IT Operations",
+  maintenance: "Maintenance",
+  food_beverage: "Food & Beverage",
+  spa_wellness: "Spa & Wellness",
+};
+
+export const DEPARTMENT_OPTIONS: { value: Department; label: string }[] =
+  ALL_DEPARTMENTS.map((d) => ({ value: d, label: DEPARTMENT_LABEL[d] }));
 
 export const RBAC_DEFINITIONS = [
   {
@@ -103,6 +75,7 @@ export type FeedItem = {
   tone: "neutral" | "info" | "danger";
 };
 
+// Live feed is still mock until we wire the events table.
 export const LIVE_FEED: FeedItem[] = [
   {
     id: "f1",
@@ -128,15 +101,25 @@ export const LIVE_FEED: FeedItem[] = [
   },
 ];
 
-export const DEPARTMENT_OPTIONS = [
-  "Front Desk",
-  "Security",
-  "Concierge",
-  "Housekeeping",
-  "IT Operations",
-  "Maintenance",
-  "Food & Beverage",
-  "Spa & Wellness",
-];
-
 export const PAGE_LIST = [1, 2, 3, "...", 36] as const;
+
+/** Two-letter initials derived from a display name. "?" if blank. */
+export function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Deterministic avatar tint keyed off role, so the table reads at a glance. */
+export function avatarTintForRole(role: StaffRole): string {
+  switch (role) {
+    case "admin":
+      return "bg-indigo-100 text-indigo-700";
+    case "manager":
+      return "bg-sky-100 text-sky-700";
+    case "staff":
+    default:
+      return "bg-emerald-100 text-emerald-700";
+  }
+}
