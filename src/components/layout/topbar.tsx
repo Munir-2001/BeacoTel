@@ -1,10 +1,32 @@
 "use client";
 
-import { Bell, HelpCircle, Search, Settings, UserRound } from "lucide-react";
+import { Bell, HelpCircle, Search, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import type { Role } from "@/lib/auth/permissions";
 
-export function Topbar() {
+const ROLE_LABEL: Record<Role, string> = {
+  admin: "Administrator",
+  manager: "Manager",
+  staff: "Staff",
+};
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export function Topbar({
+  name,
+  email,
+  role,
+}: {
+  name: string;
+  email: string;
+  role: Role;
+}) {
   return (
     <header className="flex h-[68px] items-center gap-6 border-b border-border bg-background px-8">
       <div className="w-[180px] shrink-0">
@@ -33,11 +55,22 @@ export function Topbar() {
         <IconButton ariaLabel="Settings">
           <Settings className="size-[18px]" strokeWidth={1.75} />
         </IconButton>
-        <Avatar className="ml-2 size-9">
-          <AvatarFallback className="bg-amber-100 text-amber-700">
-            <UserRound className="size-5" strokeWidth={1.75} />
-          </AvatarFallback>
-        </Avatar>
+
+        <div className="ml-2 flex items-center gap-3">
+          <div className="hidden text-right leading-tight sm:block">
+            <p className="text-sm font-medium text-foreground" title={email}>
+              {name}
+            </p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {ROLE_LABEL[role]}
+            </p>
+          </div>
+          <Avatar className="size-9">
+            <AvatarFallback className="bg-amber-100 text-sm font-semibold text-amber-700">
+              {initials(name)}
+            </AvatarFallback>
+          </Avatar>
+        </div>
       </div>
     </header>
   );
