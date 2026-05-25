@@ -1,13 +1,13 @@
 import { Shapes, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { INVENTORY_STATS } from "@/lib/inventory-data";
+import type { InventoryStats } from "@/lib/inventory/types";
 
-export function PageHeader() {
+export function PageHeader({ stats }: { stats: InventoryStats }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-6">
       <div className="max-w-xl">
         <h1 className="text-[34px] font-semibold leading-[1.15] tracking-tight text-foreground">
-          Inventory &amp; Assets Management — Refined
+          Inventory &amp; Assets Management
         </h1>
         <p className="mt-2 text-[15px] text-muted-foreground">
           Real-time oversight of luxury hardware and structural assets.
@@ -19,13 +19,13 @@ export function PageHeader() {
           icon={<Shapes className="size-5 text-indigo-600" strokeWidth={2} />}
           iconBg="bg-indigo-50"
           label="Total Assets"
-          value={INVENTORY_STATS.total.toLocaleString()}
+          value={stats.total.toLocaleString()}
         />
         <StatCard
           icon={<TrendingUp className="size-5 text-emerald-600" strokeWidth={2} />}
           iconBg="bg-emerald-50"
           label="New This Month"
-          value={`+${INVENTORY_STATS.newThisMonth}`}
+          value={`+${stats.newThisMonth}`}
           valueClassName="text-emerald-600"
         />
       </div>

@@ -16,7 +16,7 @@ export default async function RbacSettingsPage() {
   const adminCount = users.filter((u) => u.role === "admin").length;
 
   return (
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-8">
+    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div className="max-w-xl">
           <div className="flex items-center gap-2.5">

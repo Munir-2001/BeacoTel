@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { updateMyProfile } from "@/lib/personal-portal/actions";
 import type { MyProfile } from "@/lib/personal-portal/me";
 
 export function EditProfileCard({ initial }: { initial: MyProfile }) {
+  const router = useRouter();
   const [name, setName] = useState(initial.name);
   const [department, setDepartment] = useState<Department | null>(
     initial.department,
@@ -38,6 +40,9 @@ export function EditProfileCard({ initial }: { initial: MyProfile }) {
         return;
       }
       setSavedAt(Date.now());
+      // Propagate the new name/department through the topbar + the rest of
+      // the dashboard chrome on this tab.
+      router.refresh();
     });
   }
 

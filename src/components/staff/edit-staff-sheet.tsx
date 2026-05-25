@@ -29,6 +29,7 @@ import {
   updateStaff,
   type CreateStaffState,
 } from "@/lib/staff/actions";
+import { ActivityTimeline } from "@/components/audit/activity-timeline";
 import { cn } from "@/lib/utils";
 
 export type StaffDraft = {
@@ -275,7 +276,7 @@ export function EditStaffSheet({
               type="email"
               value={draft.email}
               onChange={(e) => update("email", e.target.value)}
-              placeholder="name@grandaxishotel.com"
+              placeholder="name@vdatelkonet.com"
               disabled={isEdit}
               className="h-11 rounded-lg bg-muted/60 text-sm"
             />
@@ -295,6 +296,10 @@ export function EditStaffSheet({
                 Share this with the user; they can change it after first sign-in.
               </p>
             </FieldGroup>
+          ) : null}
+
+          {isEdit && initial?.id ? (
+            <ActivityTimeline resourceType="profile" resourceId={initial.id} />
           ) : null}
 
           {error ? (

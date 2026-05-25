@@ -10,7 +10,15 @@ import {
 } from "@/lib/system-logs-data";
 import { cn } from "@/lib/utils";
 
-export function EventList({ events }: { events: LogEvent[] }) {
+export function EventList({
+  events,
+  hasMore,
+  onLoadMore,
+}: {
+  events: LogEvent[];
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+}) {
   if (events.length === 0) {
     return (
       <Card className="rounded-2xl border-border/70 bg-card p-12 text-center shadow-none">
@@ -47,14 +55,17 @@ export function EventList({ events }: { events: LogEvent[] }) {
         </section>
       ))}
 
-      <div className="flex justify-center pt-2">
-        <Button
-          variant="ghost"
-          className="h-11 rounded-lg bg-muted/60 px-6 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          Load More Events
-        </Button>
-      </div>
+      {hasMore ? (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="ghost"
+            onClick={onLoadMore}
+            className="h-11 rounded-lg bg-muted/60 px-6 text-sm font-medium text-foreground hover:bg-muted"
+          >
+            Load More Events
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -63,7 +63,7 @@ export function LoginForm({
             type="email"
             autoComplete="email"
             required
-            placeholder="you@grandaxishotel.com"
+            placeholder="you@vdatelkonet.com"
             className={fieldClass}
           />
         </div>

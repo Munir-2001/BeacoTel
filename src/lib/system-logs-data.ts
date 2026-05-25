@@ -21,6 +21,8 @@ export type LogEvent = {
   dayKey: string; // "today" | "yesterday" | "2023-10-23" ...
   dayLabel: string; // "Today, October 25"
   time: string; // "10:42 AM"
+  /** Raw ISO timestamp — kept on the row so the date-range filter can compare. */
+  occurredAt: string;
   category: LogCategory;
   severity: LogSeverity;
   message: string;
@@ -31,6 +33,8 @@ export const CATEGORY_META: Record<
   { label: string; icon: LucideIcon; iconBg: string; iconFg: string; labelColor: string }
 > = {
   staff: {
+    // Muted slate so the colored rows (Inventory rose, Maintenance emerald)
+    // visually stand out against the steady stream of people activity.
     label: "Staff",
     icon: BadgeCheck,
     iconBg: "bg-slate-100",
@@ -45,6 +49,8 @@ export const CATEGORY_META: Record<
     labelColor: "text-rose-700",
   },
   security: {
+    // Slate icon but a primary-color label, so RBAC events read as "important"
+    // without competing with Inventory/Maintenance for the eye.
     label: "Security",
     icon: Shield,
     iconBg: "bg-slate-100",
@@ -56,7 +62,7 @@ export const CATEGORY_META: Record<
     icon: Wrench,
     iconBg: "bg-emerald-100",
     iconFg: "text-emerald-700",
-    labelColor: "text-foreground",
+    labelColor: "text-emerald-700",
   },
 };
 
@@ -90,52 +96,4 @@ export const FILTER_OPTIONS: {
   { value: "maintenance", label: "Maintenance", icon: Wrench },
 ];
 
-export const LOG_EVENTS: LogEvent[] = [
-  {
-    id: "e1",
-    dayKey: "today",
-    dayLabel: "Today, October 25",
-    time: "10:42 AM",
-    category: "staff",
-    severity: "info",
-    message: "Staff Assignment: Dyson V15 Vacuum assigned to Elena Rodriguez",
-  },
-  {
-    id: "e2",
-    dayKey: "today",
-    dayLabel: "Today, October 25",
-    time: "09:15 AM",
-    category: "inventory",
-    severity: "alert",
-    message: "Inventory Alert: 1x Chardonnay removed from Room 402 Minibar",
-  },
-  {
-    id: "e3",
-    dayKey: "today",
-    dayLabel: "Today, October 25",
-    time: "08:30 AM",
-    category: "maintenance",
-    severity: "success",
-    message: "Maintenance: Service Lift A inspection completed by Julian Thorne",
-  },
-  {
-    id: "e4",
-    dayKey: "yesterday",
-    dayLabel: "Yesterday, October 24",
-    time: "11:45 PM",
-    category: "security",
-    severity: "info",
-    message: "Access Granted: Master Key override used on Penthouse Suite by Manager",
-  },
-  {
-    id: "e5",
-    dayKey: "yesterday",
-    dayLabel: "Yesterday, October 24",
-    time: "06:20 PM",
-    category: "staff",
-    severity: "info",
-    message: "Shift Change: Concierge desk handover from Sasha Kim to Marcus Vane",
-  },
-];
-
-export const DEFAULT_DATE_RANGE = "Oct 24 - Oct 25, 2023";
+// Mock LOG_EVENTS removed — live data flows in via src/lib/system-logs/list.ts.

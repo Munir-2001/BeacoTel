@@ -14,7 +14,7 @@ export type Shift = {
 export const ME = {
   firstName: "Marcus",
   fullName: "Marcus Aurelius Vance",
-  email: "m.vance@grandarch.com",
+  email: "m.vance@vdatelkonet.com",
   phone: "+1 (555) 012-3456",
   department: "Concierge",
   personnelId: "#88219",

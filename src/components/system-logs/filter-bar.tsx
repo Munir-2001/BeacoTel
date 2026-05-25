@@ -1,11 +1,15 @@
 "use client";
 
-import { Calendar, ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   FILTER_OPTIONS,
   type LogCategory,
 } from "@/lib/system-logs-data";
+import {
+  DateRangePicker,
+  type DateRange,
+} from "@/components/system-logs/date-range-picker";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | LogCategory;
@@ -15,13 +19,15 @@ export function FilterBar({
   onFilter,
   query,
   onQuery,
-  dateRange,
+  range,
+  onRange,
 }: {
   filter: Filter;
   onFilter: (v: Filter) => void;
   query: string;
   onQuery: (v: string) => void;
-  dateRange: string;
+  range: DateRange;
+  onRange: (r: DateRange) => void;
 }) {
   return (
     <div className="rounded-2xl border border-border/70 bg-muted/40 p-4 shadow-none">
@@ -49,13 +55,9 @@ export function FilterBar({
           })}
         </div>
 
-        {/* Date + search */}
+        {/* Date range + search */}
         <div className="flex flex-wrap items-center gap-3">
-          <button className="inline-flex h-10 items-center gap-2 rounded-lg bg-card px-3.5 text-sm font-medium text-foreground ring-1 ring-border hover:bg-muted">
-            <Calendar className="size-4 text-muted-foreground" strokeWidth={1.75} />
-            {dateRange}
-            <ChevronDown className="size-3.5 text-muted-foreground" strokeWidth={2} />
-          </button>
+          <DateRangePicker value={range} onChange={onRange} />
           <div className="relative w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input

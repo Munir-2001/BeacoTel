@@ -19,7 +19,7 @@ export default async function StaffDirectoryPage() {
   const canChangeDepartment = me.role === "admin";
 
   return (
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-8">
+    <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <StaffDirectoryClient
         rows={rows}
         stats={stats}

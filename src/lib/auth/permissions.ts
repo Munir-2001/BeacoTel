@@ -71,7 +71,9 @@ export const PAGE_READ_ROLES: Record<Resource, Role[]> = {
   "live-tracking": ["admin", "manager"],
   "staff-directory": ["admin", "manager"],
   "personal-portal": ["admin", "manager", "staff"],
-  "inventory": ["admin", "manager", "staff"],
+  // Inventory is admin/manager only as of migration 0007. Staff release
+  // their assigned equipment through the My Assets card on /personal-portal.
+  "inventory": ["admin", "manager"],
   "maintenance": ["admin", "manager"],
   "analytics": ["admin", "manager"],
   "system-logs": ["admin", "manager"],

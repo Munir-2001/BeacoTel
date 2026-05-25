@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { requirePermission, getCurrentUser } from "@/lib/auth/dal";
+import { recordAudit } from "@/lib/audit/log";
 import { ALL_ROLES, type Role } from "@/lib/auth/permissions";
 import { ALL_DEPARTMENTS, type Department } from "@/lib/staff-data";
 
@@ -88,6 +89,19 @@ export async function createStaff(
     return { ok: false, error: upsertErr.message };
   }
 
+  await recordAudit({
+    action: "staff.create",
+    resourceType: "profile",
+    resourceId: data.user.id,
+    newValues: {
+      email,
+      name,
+      role,
+      department,
+      employee_id: employeeId ?? "(auto)",
+    },
+  });
+
   revalidatePath(PATH);
   return { ok: true, error: null };
 }
@@ -155,8 +169,50 @@ export async function updateStaff(
   }
 
   const admin = createAdminClient();
+
+  // Snapshot only the columns we might mutate so the audit diff stays tight.
+  const { data: before } = await admin
+    .from("profiles")
+    .select("name, employee_id, department, role")
+    .eq("id", id)
+    .single();
+
   const { error } = await admin.from("profiles").update(update).eq("id", id);
   if (error) return { ok: false, error: error.message };
+
+  // Role changes get their own action name so A8 ("role changes") filters
+  // cleanly. Everything else collapses into staff.update.
+  const roleChanged =
+    "role" in update && before && before.role !== update.role;
+  const otherFieldChanged = Object.keys(update).some(
+    (k) => k !== "role" && k !== "updated_at",
+  );
+
+  if (roleChanged) {
+    await recordAudit({
+      action: "user.role_change",
+      resourceType: "profile",
+      resourceId: id,
+      oldValues: { role: before?.role },
+      newValues: { role: update.role },
+    });
+  }
+  if (otherFieldChanged) {
+    const oldFields: Record<string, unknown> = {};
+    const newFields: Record<string, unknown> = {};
+    for (const k of Object.keys(update)) {
+      if (k === "updated_at" || k === "role") continue;
+      oldFields[k] = before ? (before as Record<string, unknown>)[k] : null;
+      newFields[k] = (update as Record<string, unknown>)[k];
+    }
+    await recordAudit({
+      action: "staff.update",
+      resourceType: "profile",
+      resourceId: id,
+      oldValues: oldFields,
+      newValues: newFields,
+    });
+  }
 
   revalidatePath(PATH);
   return { ok: true };
@@ -180,6 +236,13 @@ export async function setStaffActive(
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    action: "user.set_active",
+    resourceType: "profile",
+    resourceId: id,
+    newValues: { is_active: isActive },
+  });
 
   revalidatePath(PATH);
   return { ok: true };

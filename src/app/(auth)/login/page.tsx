@@ -22,7 +22,7 @@ export default async function LoginPage({
         />
       </div>
       <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/55">
-        Beacotel Operations · © 2026 Grand Axis Hotel
+        Beacotel Operations · © 2026 VDA Telkonet
       </p>
     </div>
   );

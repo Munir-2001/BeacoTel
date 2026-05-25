@@ -23,8 +23,7 @@ export function StaffPageHeader({
           Staff Directory
         </h1>
         <p className="mt-2 max-w-xl text-[15px] text-muted-foreground">
-          Oversee access levels and monitor staff movement across the Grand Arch
-          Regency estate.
+          Oversee access levels and monitor staff movement across VDA Telkonet.
         </p>
       </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { StaffPageHeader } from "@/components/staff/page-header";
 import { StaffStats } from "@/components/staff/stat-cards";
 import { StaffTable } from "@/components/staff/staff-table";
@@ -26,8 +27,20 @@ export function StaffDirectoryClient({
   canChangeRole: boolean;
   canChangeDepartment: boolean;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<StaffDraft | undefined>(undefined);
+
+  // Sidebar "Add Staff" CTA → /staff-directory?new=1
+  useEffect(() => {
+    if (searchParams.get("new") === "1" && canCreate) {
+      setEditing(undefined);
+      setSheetOpen(true);
+      router.replace(pathname);
+    }
+  }, [searchParams, canCreate, pathname, router]);
 
   function openCreate() {
     setEditing(undefined);
@@ -55,7 +68,12 @@ export function StaffDirectoryClient({
         initial={editing}
         currentUserId={currentUserId}
         canChangeRole={canChangeRole}
-        onSaved={() => setSheetOpen(false)}
+        onSaved={() => {
+          setSheetOpen(false);
+          // Re-fetch the page's server data so the table reflects the save
+          // without a hard reload.
+          router.refresh();
+        }}
       />
     </>
   );

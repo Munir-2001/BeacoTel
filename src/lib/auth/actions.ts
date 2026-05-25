@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { recordAudit } from "@/lib/audit/log";
 
 export type LoginState = { error: string | null };
 
@@ -44,6 +45,13 @@ export async function login(
     .from("profiles")
     .update({ last_login: new Date().toISOString() })
     .eq("id", data.user.id);
+
+  await recordAudit({
+    action: "login.success",
+    resourceType: "profile",
+    resourceId: data.user.id,
+    actor: { id: data.user.id, email: data.user.email ?? email },
+  });
 
   revalidatePath("/", "layout");
   redirect(redirectTo);

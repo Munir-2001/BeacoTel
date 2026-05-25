@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   CheckCircle2,
@@ -51,7 +52,18 @@ export function UsersPanel({
   users: AdminUser[];
   currentUserId: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
+
+  // Sidebar "Add User" CTA → /rbac-settings?new=1 reveals the create form.
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setShowForm(true);
+      router.replace(pathname);
+    }
+  }, [searchParams, pathname, router]);
 
   return (
     <section className="rounded-2xl border border-border/70 bg-muted/40 p-4">
@@ -122,7 +134,7 @@ function CreateUserForm() {
             name="email"
             type="email"
             required
-            placeholder="jane@grandaxishotel.com"
+            placeholder="jane@vdatelkonet.com"
           />
         </Field>
         <Field label="Temporary password">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/dal";
+import { recordAudit } from "@/lib/audit/log";
 import {
   ALL_ACTIONS,
   ALL_RESOURCES,
@@ -68,6 +69,13 @@ export async function createUser(
     .from("profiles")
     .upsert({ id: data.user.id, email, name, role }, { onConflict: "id" });
 
+  await recordAudit({
+    action: "user.create",
+    resourceType: "profile",
+    resourceId: data.user.id,
+    newValues: { email, name, role },
+  });
+
   revalidatePath(RBAC_PATH);
   return { ok: true, error: null };
 }
@@ -87,12 +95,26 @@ export async function updateUserRole(
   }
 
   const supabase = await createClient();
+  // Fetch the previous role so the audit row carries the diff.
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
   const { error } = await supabase
     .from("profiles")
     .update({ role, updated_at: new Date().toISOString() })
     .eq("id", userId);
 
   if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    action: "user.role_change",
+    resourceType: "profile",
+    resourceId: userId,
+    oldValues: before ? { role: before.role } : null,
+    newValues: { role },
+  });
 
   revalidatePath(RBAC_PATH);
   return { ok: true };
@@ -119,6 +141,13 @@ export async function setUserActive(
     .eq("id", userId);
 
   if (error) return { ok: false, error: error.message };
+
+  await recordAudit({
+    action: "user.set_active",
+    resourceType: "profile",
+    resourceId: userId,
+    newValues: { is_active: isActive },
+  });
 
   revalidatePath(RBAC_PATH);
   return { ok: true };
@@ -160,6 +189,13 @@ export async function togglePermission(
       .match({ role, resource, action });
     if (error) return { ok: false, error: error.message };
   }
+
+  await recordAudit({
+    action: enabled ? "permission.grant" : "permission.revoke",
+    resourceType: "permission",
+    resourceId: `${role}:${resource}:${action}`,
+    newValues: { role, resource, action },
+  });
 
   revalidatePath(RBAC_PATH);
   return { ok: true };

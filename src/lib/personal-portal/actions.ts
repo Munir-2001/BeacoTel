@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/dal";
+import { recordAudit } from "@/lib/audit/log";
 import { ALL_DEPARTMENTS, type Department } from "@/lib/staff-data";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -46,12 +47,36 @@ export async function updateMyProfile(
   }
 
   const supabase = await createClient();
+
+  // Capture before-state so the audit row carries an actual diff.
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("name, department")
+    .eq("id", me.id)
+    .single();
+
   const { error } = await supabase
     .from("profiles")
     .update(update)
     .eq("id", me.id);
 
   if (error) return { ok: false, error: error.message };
+
+  const oldFields: Record<string, unknown> = {};
+  const newFields: Record<string, unknown> = {};
+  for (const k of Object.keys(update)) {
+    if (k === "updated_at") continue;
+    oldFields[k] = before ? (before as Record<string, unknown>)[k] : null;
+    newFields[k] = (update as Record<string, unknown>)[k];
+  }
+  await recordAudit({
+    action: "profile.self_update",
+    resourceType: "profile",
+    resourceId: me.id,
+    oldValues: oldFields,
+    newValues: newFields,
+    actor: { id: me.id, email: me.email },
+  });
 
   revalidatePath(PATH);
   return { ok: true };
