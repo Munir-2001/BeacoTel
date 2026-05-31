@@ -23,7 +23,7 @@ export function PlaybackCard() {
   return (
     <Card className="rounded-2xl border-border/70 bg-card p-5 shadow-none">
       {/* Heatmap stage */}
-      <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-border/60 bg-[oklch(0.95_0.01_250)]">
+      <div className="relative aspect-[5/2] overflow-hidden rounded-xl border border-border/60 bg-[oklch(0.95_0.01_250)]">
         {/* Compliance pills */}
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
@@ -197,44 +197,106 @@ function SpeedSelect({
 function BlueprintBG() {
   return (
     <svg
-      viewBox="0 0 800 500"
+      viewBox="0 0 1200 480"
       xmlns="http://www.w3.org/2000/svg"
       className="absolute inset-0 size-full opacity-90"
       fill="none"
     >
       <defs>
-        <pattern id="grid-zd" width="16" height="16" patternUnits="userSpaceOnUse">
-          <path d="M16 0H0V16" stroke="rgba(15,42,71,0.05)" strokeWidth="1" />
+        <pattern id="grid-zd" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M20 0H0V20" stroke="rgba(15,42,71,0.05)" strokeWidth="1" />
+        </pattern>
+        <pattern id="hatch-zd" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#94A3B8" strokeWidth="1.1" />
         </pattern>
       </defs>
-      <rect width="800" height="500" fill="#F3F6FA" />
-      <rect width="800" height="500" fill="url(#grid-zd)" />
+
+      <rect width="1200" height="480" fill="#F3F6FA" />
+      <rect width="1200" height="480" fill="url(#grid-zd)" />
+
       {/* Building outline */}
-      <path
-        d="M60 60 H560 Q610 60 640 110 L700 200 Q720 230 720 270 V410 H60 Z"
-        fill="#FFFFFF"
-        stroke="#94A3B8"
-        strokeWidth="2"
-      />
-      {/* Inner walls */}
-      <g stroke="#64748B" strokeWidth="1.5">
-        <line x1="60" y1="220" x2="640" y2="220" />
-        <line x1="240" y1="60" x2="240" y2="220" />
-        <line x1="430" y1="60" x2="430" y2="220" />
-        <line x1="240" y1="140" x2="430" y2="140" />
-        <line x1="200" y1="220" x2="200" y2="410" />
-        <line x1="400" y1="220" x2="400" y2="410" />
-        <line x1="540" y1="220" x2="540" y2="410" />
-        <line x1="200" y1="320" x2="400" y2="320" />
+      <rect x="40" y="80" width="1120" height="320" fill="#FFFFFF" stroke="#2563EB" strokeWidth="2" />
+      <rect x="48" y="88" width="1104" height="304" fill="none" stroke="#94A3B8" strokeWidth="1" />
+
+      {/* Top window/skylight strip */}
+      <g>
+        <rect x="100" y="72" width="700" height="16" fill="#FFFFFF" stroke="#475569" strokeWidth="1" />
+        {Array.from({ length: 18 }).map((_, i) => (
+          <line
+            key={i}
+            x1={100 + i * 40}
+            y1="72"
+            x2={100 + i * 40}
+            y2="88"
+            stroke="#475569"
+            strokeWidth="0.6"
+          />
+        ))}
+        <rect x="480" y="68" width="22" height="24" fill="#FFFFFF" stroke="#475569" strokeWidth="1" />
       </g>
-      {/* Furniture hints */}
-      <g fill="#E2E8F0" stroke="#94A3B8" strokeWidth="1">
-        <rect x="90" y="100" width="40" height="60" rx="3" />
-        <circle cx="335" cy="180" r="14" />
-        <rect x="470" y="100" width="80" height="40" rx="3" />
-        <rect x="240" y="260" width="120" height="40" rx="3" />
-        <rect x="430" y="360" width="80" height="30" rx="3" />
+
+      {/* Red dividing walls */}
+      <g stroke="#DC2626" strokeWidth="3" strokeLinecap="square">
+        <line x1="545" y1="88" x2="545" y2="360" />
+        <line x1="545" y1="388" x2="545" y2="400" />
+        <line x1="945" y1="88" x2="945" y2="360" />
+        <line x1="945" y1="388" x2="945" y2="400" />
       </g>
+
+      {/* Door swing arcs */}
+      <g stroke="#475569" strokeWidth="1.1" fill="none">
+        <path d="M 250 392 A 40 40 0 0 1 290 352" />
+        <line x1="250" y1="392" x2="290" y2="392" stroke="#94A3B8" strokeWidth="2" />
+        <path d="M 545 360 A 34 34 0 0 1 579 394" />
+        <path d="M 945 360 A 34 34 0 0 1 979 394" />
+        <path d="M 1160 200 A 38 38 0 0 1 1122 238" />
+        <path d="M 1160 320 A 38 38 0 0 0 1122 282" />
+      </g>
+
+      {/* Hatched columns / floor fixtures */}
+      <g>
+        <rect x="60" y="84" width="18" height="14" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" />
+        <rect x="60" y="216" width="18" height="22" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" />
+        <rect x="1122" y="84" width="18" height="14" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" />
+        <rect x="1122" y="216" width="18" height="22" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" />
+        <rect x="285" y="252" width="38" height="14" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" />
+        <rect x="722" y="252" width="32" height="14" fill="url(#hatch-zd)" stroke="#94A3B8" strokeWidth="0.8" opacity="0.55" />
+      </g>
+
+      {/* ELETTRONICA — 3×3 workbench grid */}
+      <g fill="#FFFFFF" stroke="#475569" strokeWidth="1">
+        {[130, 220, 310].map((y) =>
+          [575, 705, 835].map((x) => (
+            <rect key={`${x}-${y}`} x={x} y={y} width="90" height="32" rx="1" />
+          ))
+        )}
+      </g>
+
+      {/* Fixed beacon receivers (numbered left → right) */}
+      <BeaconMarkerZD n={1} cx={120} cy={130} />
+      <BeaconMarkerZD n={2} cx={760} cy={370} />
+      <BeaconMarkerZD n={3} cx={1000} cy={130} />
     </svg>
   );
 }
+
+function BeaconMarkerZD({ n, cx, cy }: { n: number; cx: number; cy: number }) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r="22" fill="#2563EB" opacity="0.12" />
+      <circle cx={cx} cy={cy} r="14" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2.5" />
+      <text
+        x={cx}
+        y={cy + 4}
+        fontSize="13"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontFamily="ui-sans-serif, system-ui"
+      >
+        {n}
+      </text>
+    </g>
+  );
+}
+

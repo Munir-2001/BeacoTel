@@ -60,9 +60,12 @@ export const PEAK_OCCUPANCY = {
   peakIndex: 4,
 };
 
-/** Heatmap blob positions (percentages within the playback canvas). */
+/** Heatmap blob positions (percentages within the playback canvas — FabLab S35). */
 export const HEATMAP_BLOBS = [
-  { x: 28, y: 35, size: 200, intensity: 0.9 },
-  { x: 38, y: 60, size: 160, intensity: 0.6 },
-  { x: 52, y: 45, size: 120, intensity: 0.45 },
+  // ELETTRONICA (3x3 workbenches) — peak density
+  { x: 65, y: 50, size: 240, intensity: 0.9 },
+  // FABLAB — secondary cluster
+  { x: 22, y: 55, size: 200, intensity: 0.55 },
+  // PROTOTIPAZIONE — light traffic
+  { x: 87, y: 55, size: 120, intensity: 0.4 },
 ];

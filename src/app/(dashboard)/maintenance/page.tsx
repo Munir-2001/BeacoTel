@@ -1,8 +1,9 @@
-import { AlertTriangle, Boxes, CheckCheck, Wrench } from "lucide-react";
+import { AlertTriangle, Boxes, CheckCheck, MapPin, Wrench } from "lucide-react";
 import { hasPermission, requirePermission } from "@/lib/auth/dal";
 import { listAssets } from "@/lib/inventory/list";
 import { Card } from "@/components/ui/card";
 import { MaintenanceBoard } from "@/components/maintenance/maintenance-board";
+import { FabLabMap } from "@/components/floorplan/fablab-map";
 import type { EquipmentStatus } from "@/lib/inventory/types";
 
 export default async function MaintenancePage() {
@@ -63,6 +64,18 @@ export default async function MaintenancePage() {
           valueClassName="text-emerald-700"
         />
       </div>
+
+      <Card className="rounded-2xl border-border/70 bg-card p-6 shadow-none">
+        <header className="flex items-center gap-2">
+          <MapPin className="size-4 text-primary" strokeWidth={2} />
+          <h2 className="text-[17px] font-semibold tracking-tight text-foreground">
+            Asset Locations — Floor 01 FabLab S35
+          </h2>
+        </header>
+        <div className="relative mt-5 aspect-[5/2] overflow-hidden rounded-xl border border-border/60 bg-[oklch(0.97_0.012_250)]">
+          <FabLabMap idPrefix="mnt" />
+        </div>
+      </Card>
 
       <MaintenanceBoard assets={assets} canEdit={canEdit} />
     </div>
