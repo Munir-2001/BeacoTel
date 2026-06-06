@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Minus, Plus, Layers } from "lucide-react";
 import {
   AnchorLayer,
@@ -8,32 +8,92 @@ import {
   TraceOverlay,
   useBeaconPlayback,
 } from "@/components/live-tracking/beacon-playback";
+import {
+  HeartbeatIndicator,
+  LiveOverlay,
+  LiveStatusPill,
+} from "@/components/live-tracking/live-overlay";
+import {
+  HEATMAP_WINDOWS,
+  HeatmapOverlay,
+  type HeatmapStats,
+  type HeatmapWindow,
+} from "@/components/live-tracking/heatmap-overlay";
+import { HeatmapLegend } from "@/components/live-tracking/heatmap-legend";
+import { useLiveBeacons } from "@/lib/positioning/live-beacons";
 
 const ZOOM_MIN = 0.6;
 const ZOOM_MAX = 2.5;
 const ZOOM_STEP = 0.2;
 
+type Mode = "live" | "replay" | "heatmap";
+
 export function FloorPlan() {
   const [zoom, setZoom] = useState(1);
+  const [mode, setMode] = useState<Mode>("live");
+  const [heatWindow, setHeatWindow] = useState<HeatmapWindow>("24h");
+  const [heatBeacon, setHeatBeacon] = useState<number | null>(null);
+  const [heatStats, setHeatStats] = useState<HeatmapStats>({
+    sampleCount: 0,
+    maxPerCell: 0,
+    uniqueBeacons: [],
+  });
+  // Stable callback so HeatmapOverlay doesn't re-fetch on parent re-render.
+  const onHeatStats = useCallback(
+    (s: HeatmapStats) => setHeatStats(s),
+    [],
+  );
   const atMax = zoom >= ZOOM_MAX - 0.001;
   const atMin = zoom <= ZOOM_MIN + 0.001;
 
+  // Subscription only runs while in live mode — no Realtime traffic during replay.
+  const live = useLiveBeacons({ enabled: mode === "live" });
+
+  // Playback hook always mounts (it just loads a static file), but its effects
+  // don't hit the network beyond the initial trace fetch.
   const pb = useBeaconPlayback();
 
   return (
     <section className="relative flex-1 overflow-hidden rounded-2xl bg-[oklch(0.55_0.01_250)]/55 p-6 shadow-inner">
       {/* Top pills */}
-      <div className="absolute left-6 top-6 z-20 flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
-          <span className="inline-block size-1.5 rounded-full bg-red-500" />
-          Live Tracking
-        </span>
+      <div className="absolute left-6 top-6 z-20 flex flex-wrap items-center gap-2">
+        {mode === "live" ? (
+          <>
+            <LiveStatusPill
+              status={live.status}
+              liveCount={live.beacons.filter((b) => !b.stale).length}
+              staleCount={live.beacons.filter((b) => b.stale).length}
+            />
+            <HeartbeatIndicator lastEventAt={live.lastEventAt} />
+          </>
+        ) : mode === "replay" ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
+            <span className="inline-block size-1.5 rounded-full bg-purple-500" />
+            Replay
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
+            <span className="inline-block size-1.5 rounded-full bg-rose-500" />
+            Heatmap
+            <span className="ml-1 text-foreground/60">
+              · {heatStats.sampleCount.toLocaleString()} samples
+            </span>
+          </span>
+        )}
         <span className="rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
           Floor 01 — FabLab S35
         </span>
-        <span className="rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
-          Beacon 66 · 1 employee
-        </span>
+        <ModeToggle mode={mode} onChange={setMode} />
+        {mode === "heatmap" ? (
+          <>
+            <HeatmapWindowPicker value={heatWindow} onChange={setHeatWindow} />
+            <HeatmapBeaconPicker
+              value={heatBeacon}
+              options={heatStats.uniqueBeacons}
+              onChange={setHeatBeacon}
+            />
+          </>
+        ) : null}
       </div>
 
       {/* Canvas: blueprint + trace overlay + anchors */}
@@ -43,12 +103,32 @@ export function FloorPlan() {
           style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
         >
           <Blueprint />
-          <TraceOverlay positions={pb.positions} idx={pb.idx} />
-          <AnchorLayer rssiNow={pb.currentRssi} />
+          {mode === "live" ? (
+            <LiveOverlay beacons={live.beacons} />
+          ) : mode === "replay" ? (
+            <TraceOverlay positions={pb.positions} idx={pb.idx} />
+          ) : (
+            <HeatmapOverlay
+              window={heatWindow}
+              beaconFilter={heatBeacon}
+              onStats={onHeatStats}
+            />
+          )}
+          <AnchorLayer rssiNow={mode === "replay" ? pb.currentRssi : {}} />
         </div>
       </div>
 
-      <PlaybackControls pb={pb} />
+      {mode === "replay" ? <PlaybackControls pb={pb} /> : null}
+      {mode === "heatmap" ? (
+        <HeatmapLegend
+          sampleCount={heatStats.sampleCount}
+          maxPerCell={heatStats.maxPerCell}
+          windowLabel={
+            HEATMAP_WINDOWS.find((w) => w.value === heatWindow)?.label ?? heatWindow
+          }
+          beaconFilter={heatBeacon}
+        />
+      ) : null}
 
       {/* Zoom + layer controls */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
@@ -71,6 +151,97 @@ export function FloorPlan() {
         </ControlButton>
       </div>
     </section>
+  );
+}
+
+function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  const opts: { value: Mode; label: string }[] = [
+    { value: "live", label: "Live" },
+    { value: "replay", label: "Replay" },
+    { value: "heatmap", label: "Heatmap" },
+  ];
+  return (
+    <div className="inline-flex items-center rounded-full bg-white/95 p-0.5 text-[11px] font-semibold uppercase tracking-wider shadow-sm">
+      {opts.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={mode === o.value}
+          className={`rounded-full px-3 py-1 transition-colors ${
+            mode === o.value
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground/60 hover:text-foreground"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HeatmapWindowPicker({
+  value,
+  onChange,
+}: {
+  value: HeatmapWindow;
+  onChange: (v: HeatmapWindow) => void;
+}) {
+  return (
+    <div className="inline-flex items-center rounded-full bg-white/95 p-0.5 text-[11px] font-semibold uppercase tracking-wider shadow-sm">
+      {HEATMAP_WINDOWS.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={`rounded-full px-3 py-1 transition-colors ${
+            value === o.value
+              ? "bg-rose-500 text-white"
+              : "text-foreground/60 hover:text-foreground"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Beacon selector for the heatmap. "All" merges every beacon's history into
+ * one density grid; picking a single ID narrows to that beacon's traces.
+ * Options come from the overlay's last fetch (distinct ids in the window),
+ * so the list is always honest about what's in the DB.
+ */
+function HeatmapBeaconPicker({
+  value,
+  options,
+  onChange,
+}: {
+  value: number | null;
+  options: number[];
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
+      <span className="text-foreground/55">Beacon</span>
+      <select
+        value={value == null ? "all" : String(value)}
+        onChange={(e) =>
+          onChange(e.target.value === "all" ? null : Number(e.target.value))
+        }
+        className="cursor-pointer bg-transparent text-[11px] font-semibold uppercase tracking-wider text-foreground focus:outline-none"
+      >
+        <option value="all">All ({options.length})</option>
+        {options.map((id) => (
+          <option key={id} value={id}>
+            #{id}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

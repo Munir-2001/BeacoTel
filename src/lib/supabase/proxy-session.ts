@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Routes reachable without a session. Everything else requires sign-in. */
-const PUBLIC_PREFIXES = ["/login", "/auth"];
+/**
+ * Routes reachable without a session. Everything else requires sign-in.
+ * `/api/ble/*` is the ESP32/Raspberry-Pi ingestion surface — devices
+ * authenticate with a service-role-style bearer token at the route handler
+ * layer, not via Supabase auth cookies, so they must skip this proxy.
+ */
+const PUBLIC_PREFIXES = ["/login", "/auth", "/api/ble", "/api/rfid"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some(
