@@ -15,6 +15,9 @@ export type EquipmentCategory =
   | "cleaning"
   | "other";
 
+/** Mirrors public.equipment_item_type (migration 0012). */
+export type ItemType = "inventory" | "asset";
+
 export type Asset = {
   id: string;
   assetCode: string;
@@ -31,7 +34,33 @@ export type Asset = {
   value: number;
   notes: string;
   lastInspectedAt: string | null;
+  /** 'inventory' (default, all pre-0012 rows) or 'asset' (tracked property). */
+  itemType: ItemType;
+  /** BLE beacon attached to this asset — null for untracked items. */
+  beaconId: number | null;
+  /** Home position + safe radius, floor-plan viewBox units (1200×480). */
+  homeX: number | null;
+  homeY: number | null;
+  geofenceRadius: number | null;
 };
+
+/** An Asset that the floorplan can guard: typed + beacon-bound + homed. */
+export type TrackedAsset = Asset & {
+  beaconId: number;
+  homeX: number;
+  homeY: number;
+  geofenceRadius: number;
+};
+
+export function isTrackedAsset(a: Asset): a is TrackedAsset {
+  return (
+    a.itemType === "asset" &&
+    a.beaconId !== null &&
+    a.homeX !== null &&
+    a.homeY !== null &&
+    a.geofenceRadius !== null
+  );
+}
 
 export type InventoryStats = {
   total: number;
@@ -72,6 +101,18 @@ export const ALL_CATEGORIES: EquipmentCategory[] = [
   "cleaning",
   "other",
 ];
+
+export const ITEM_TYPE_OPTIONS: { value: ItemType; label: string }[] = [
+  { value: "inventory", label: "Inventory" },
+  { value: "asset", label: "Asset" },
+];
+
+export const ALL_ITEM_TYPES: ItemType[] = ["inventory", "asset"];
+
+export const ITEM_TYPE_LABEL: Record<ItemType, string> = {
+  inventory: "Inventory",
+  asset: "Asset",
+};
 
 export const CATEGORY_LABEL: Record<EquipmentCategory, string> = {
   multimedia: "Multimedia Hardware",

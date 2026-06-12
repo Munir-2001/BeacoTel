@@ -24,6 +24,15 @@ export type LiveConnectionStatus =
   | "connected"
   | "error";
 
+/**
+ * The browser Supabase client is a singleton and caches realtime channels by
+ * topic, so every useLiveBeacons instance needs its own topic. With a shared
+ * one, a second subscriber (e.g. the app-wide asset guard in the layout plus
+ * the Live Tracking page) would get the already-subscribed channel back and
+ * crash with "cannot add postgres_changes callbacks after subscribe()".
+ */
+let channelSeq = 0;
+
 type Options = {
   /** When false, no fetch and no realtime subscription — zero API calls. */
   enabled: boolean;
@@ -147,7 +156,7 @@ export function useLiveBeacons({
     // Realtime push — fast path. When wired correctly the polling SELECT
     // below sees no change and the heartbeat blips here instead.
     const channel = supabase
-      .channel("beacon-live-positions")
+      .channel(`beacon-live-positions-${++channelSeq}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "beacon_live_positions" },

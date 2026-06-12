@@ -6,6 +6,7 @@ import type {
   Asset,
   EquipmentCategory,
   EquipmentStatus,
+  ItemType,
 } from "@/lib/inventory/types";
 
 /**
@@ -25,6 +26,11 @@ type Row = {
   value_cents: number;
   notes: string | null;
   last_inspected_at: string | null;
+  item_type: ItemType;
+  beacon_id: number | null;
+  home_x: number | null;
+  home_y: number | null;
+  geofence_radius: number | null;
 };
 
 export async function listMyAssets(): Promise<Asset[]> {
@@ -34,7 +40,7 @@ export async function listMyAssets(): Promise<Asset[]> {
   const { data, error } = await admin
     .from("equipment")
     .select(
-      "id, asset_code, name, category, location, status, rfid_tag_id, value_cents, notes, last_inspected_at",
+      "id, asset_code, name, category, location, status, rfid_tag_id, value_cents, notes, last_inspected_at, item_type, beacon_id, home_x, home_y, geofence_radius",
     )
     .eq("assigned_to", me.id)
     .is("archived_at", null)
@@ -55,5 +61,10 @@ export async function listMyAssets(): Promise<Asset[]> {
     value: r.value_cents / 100,
     notes: r.notes ?? "",
     lastInspectedAt: r.last_inspected_at,
+    itemType: r.item_type ?? "inventory",
+    beaconId: r.beacon_id,
+    homeX: r.home_x,
+    homeY: r.home_y,
+    geofenceRadius: r.geofence_radius,
   }));
 }

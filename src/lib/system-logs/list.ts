@@ -79,6 +79,7 @@ function rowToLogEvent(row: AuditRow): LogEvent {
 
 function categorize(action: string): LogCategory {
   if (action.startsWith("permission.")) return "security";
+  if (action.startsWith("asset.")) return "security";
   if (action.startsWith("equipment.")) return "maintenance";
   if (action.startsWith("inventory.")) return "inventory";
   // login, user.*, staff.*, profile.* — all are people-activity events.
@@ -99,6 +100,7 @@ function severityFor(row: AuditRow): LogSeverity {
   }
   if (row.action === "permission.revoke") return "alert";
   if (row.action === "inventory.removed") return "alert";
+  if (row.action === "asset.moved_alert") return "alert";
   return "info";
 }
 
@@ -158,6 +160,12 @@ function humanize(row: AuditRow): string {
       return `Maintenance: ${n?.equipment ?? "Equipment"} taken offline for service${
         n?.reason ? ` (${n.reason})` : ""
       }`;
+    case "asset.moved_alert": {
+      const item = (n?.item as string | undefined) ?? "Tracked asset";
+      const code = row.resource_id ? ` (${row.resource_id})` : "";
+      const beacon = n?.beacon_id != null ? ` — beacon #${n.beacon_id}` : "";
+      return `Security Alert: ${item}${code} is being moved — left its safe zone${beacon}`;
+    }
     case "inventory.removed":
       return `Inventory Alert: ${n?.item ?? "Item"} removed${
         n?.location ? ` from ${n.location}` : ""

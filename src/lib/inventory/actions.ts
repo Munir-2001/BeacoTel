@@ -6,9 +6,11 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit/log";
 import {
   ALL_CATEGORIES,
+  ALL_ITEM_TYPES,
   ALL_STATUSES,
   type EquipmentCategory,
   type EquipmentStatus,
+  type ItemType,
 } from "@/lib/inventory/types";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -27,6 +29,8 @@ export type AssetInput = {
   /** Major-unit value (e.g. 1450 for €1450). Stored as cents on disk. */
   value: number;
   notes: string;
+  /** Optional so pre-0012 callers keep working — defaults to 'inventory'. */
+  itemType?: ItemType;
 };
 
 /** Statuses staff may pick when releasing an assigned asset. */
@@ -44,6 +48,12 @@ function validate(input: AssetInput): string | null {
   }
   if (!(ALL_STATUSES as readonly string[]).includes(input.status)) {
     return "Pick a valid status.";
+  }
+  if (
+    input.itemType !== undefined &&
+    !(ALL_ITEM_TYPES as readonly string[]).includes(input.itemType)
+  ) {
+    return "Pick a valid item type.";
   }
   if (input.status === "archived") {
     return "Use the Archive action to archive an asset.";
@@ -77,6 +87,9 @@ function toRow(input: AssetInput) {
     assigned_to: input.assignedToId || null,
     value_cents: Math.round(input.value * 100),
     notes: input.notes.trim() || null,
+    // Omitted (pre-0012 callers) ⇒ leave untouched on update, DB default
+    // 'inventory' on insert. Never coerce an existing 'asset' back down.
+    ...(input.itemType !== undefined ? { item_type: input.itemType } : {}),
   };
 }
 
@@ -142,7 +155,7 @@ export async function updateAsset(
   const { data: before } = await supabase
     .from("equipment")
     .select(
-      "asset_code, name, category, location, rfid_tag_id, status, assigned_to, value_cents, notes",
+      "asset_code, name, category, location, rfid_tag_id, status, assigned_to, value_cents, notes, item_type",
     )
     .eq("id", id)
     .single();
@@ -510,6 +523,8 @@ type EquipmentDbShape = {
   rfid_tag_id: string | null;
   value_cents: number;
   notes: string | null;
+  /** Optional: absent when the caller didn't send itemType (pre-0012). */
+  item_type?: ItemType;
 };
 
 function diffOtherFields(
@@ -530,9 +545,12 @@ function diffOtherFields(
     "rfid_tag_id",
     "value_cents",
     "notes",
+    "item_type",
   ];
   for (const f of fields) {
-    if (before[f] !== next[f]) {
+    // undefined ⇒ the caller didn't touch this field (e.g. omitted itemType),
+    // so it's not a change worth auditing.
+    if (next[f] !== undefined && before[f] !== next[f]) {
       oldValues[f] = before[f] ?? null;
       newValues[f] = next[f];
     }

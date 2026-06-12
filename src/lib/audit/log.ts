@@ -25,7 +25,8 @@ export type AuditAction =
   | "inventory.unassigned"
   | "equipment.status_change"
   | "equipment.inspection_completed"
-  | "equipment.maintenance_started";
+  | "equipment.maintenance_started"
+  | "asset.moved_alert";
 
 export type AuditResourceType =
   | "profile"

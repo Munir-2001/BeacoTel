@@ -2,11 +2,14 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/dal";
-import type {
-  Asset,
-  EquipmentCategory,
-  EquipmentStatus,
-  InventoryStats,
+import {
+  isTrackedAsset,
+  type Asset,
+  type EquipmentCategory,
+  type EquipmentStatus,
+  type InventoryStats,
+  type ItemType,
+  type TrackedAsset,
 } from "@/lib/inventory/types";
 
 /**
@@ -27,6 +30,11 @@ type Row = {
   value_cents: number;
   notes: string | null;
   last_inspected_at: string | null;
+  item_type: ItemType;
+  beacon_id: number | null;
+  home_x: number | null;
+  home_y: number | null;
+  geofence_radius: number | null;
   profiles: { name: string } | null;
 };
 
@@ -37,7 +45,7 @@ export async function listAssets(): Promise<Asset[]> {
   const { data, error } = await supabase
     .from("equipment")
     .select(
-      "id, asset_code, name, category, location, status, rfid_tag_id, assigned_to, value_cents, notes, last_inspected_at, profiles!assigned_to(name)",
+      "id, asset_code, name, category, location, status, rfid_tag_id, assigned_to, value_cents, notes, last_inspected_at, item_type, beacon_id, home_x, home_y, geofence_radius, profiles!assigned_to(name)",
     )
     .is("archived_at", null)
     .order("created_at", { ascending: false });
@@ -45,6 +53,29 @@ export async function listAssets(): Promise<Asset[]> {
   if (error || !data) return [];
 
   return (data as unknown as Row[]).map(rowToAsset);
+}
+
+/**
+ * Just the geofence-guarded subset — fetched by the dashboard layout on every
+ * page so the global asset guard can watch beacons app-wide. Kept separate
+ * from listAssets() so layout navigation doesn't pull the whole registry.
+ */
+export async function listTrackedAssets(): Promise<TrackedAsset[]> {
+  await requirePermission("inventory", "read");
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("equipment")
+    .select(
+      "id, asset_code, name, category, location, status, rfid_tag_id, assigned_to, value_cents, notes, last_inspected_at, item_type, beacon_id, home_x, home_y, geofence_radius, profiles!assigned_to(name)",
+    )
+    .is("archived_at", null)
+    .eq("item_type", "asset")
+    .not("beacon_id", "is", null);
+
+  if (error || !data) return [];
+
+  return (data as unknown as Row[]).map(rowToAsset).filter(isTrackedAsset);
 }
 
 export async function getInventoryStats(): Promise<InventoryStats> {
@@ -87,5 +118,10 @@ function rowToAsset(r: Row): Asset {
     value: r.value_cents / 100,
     notes: r.notes ?? "",
     lastInspectedAt: r.last_inspected_at,
+    itemType: r.item_type ?? "inventory",
+    beaconId: r.beacon_id,
+    homeX: r.home_x,
+    homeY: r.home_y,
+    geofenceRadius: r.geofence_radius,
   };
 }

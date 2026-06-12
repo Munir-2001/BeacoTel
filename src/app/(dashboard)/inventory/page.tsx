@@ -21,6 +21,8 @@ export default async function InventoryPage() {
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <PageHeader stats={stats} />
+      {/* Guard data (tracked assets + alerts) comes from AssetGuardProvider
+          in the dashboard layout — one shared instance app-wide. */}
       <FloorplanCard />
       <AssetRegistry
         rows={assets}

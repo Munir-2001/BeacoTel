@@ -1,66 +1,66 @@
 /**
  * Pi → UI coordinate conversion.
  *
- * The Pi computes positions in real-world METERS. Looking at the live data:
- *   - `x` ranges 0–~8 m  → it's the SHORT axis (room depth, N↕S in the plan)
- *   - `y` ranges 0–~24 m → it's the LONG axis  (room length, W↔E in the plan)
+ * Calibrated 2026-06-12 from four corner beacons placed at the physical
+ * extremes of the lab. Their saved positions in `beacon_live_positions`:
  *
- * The floor-plan SVG uses a viewBox of 1200 × 480 PIXELS where:
- *   - viewBox X (horizontal) runs along the LONG axis of the floor
- *   - viewBox Y (vertical)   runs along the SHORT axis of the floor
+ *   beacon_id  Pi (x, y)     Screen corner
+ *   100        (0,    0)     top-left
+ *   101        (22,   0)     bottom-left
+ *   102        (0,    8.5)   top-right
+ *   103        (22,   8.5)   bottom-right
  *
- * So the mapping is rotated: **Pi y → viewBox x, Pi x → viewBox y**.
+ * From those four points the Pi convention is unambiguous:
+ *   - Going top → bottom, Pi `x` runs 0 → 22
+ *     ⇒ Pi `x` maps to the viewBox **vertical** axis.
+ *   - Going left → right, Pi `y` runs 0 → 8.5
+ *     ⇒ Pi `y` maps to the viewBox **horizontal** axis.
  *
- * Floor footprint from the architect's plan (FABLAB 86.23 + ELETTRONICA 72.47
- * + PROTOTIPAZIONE 34.00 = 192.7 m²) is roughly 24 m long × 8 m deep. Tune the
- * two constants below if dots end up in the wrong room.
+ * If the corner beacons ever move or you re-calibrate, just update the
+ * two range constants below — the math re-aligns automatically.
  */
 
-/** Long axis (FABLAB ↔ PROTOTIPAZIONE). Pi's `y` is in this dimension. */
-export const FLOOR_LENGTH_M = 24;
+/** Range of Pi's `x` axis (top-to-bottom on screen, in metres). */
+export const PI_X_RANGE_M = 22;
+/** Range of Pi's `y` axis (left-to-right on screen, in metres). */
+export const PI_Y_RANGE_M = 8.5;
+
 /**
- * Short axis (room depth). Pi's `x` is in this dimension.
- *
- * Bumped from 8 to 10 after the live heatmap showed the densest cluster
- * pile up on the south wall: that means the Pi reports x-values up to
- * ~9–10 m, not the 8 m I'd estimated from the architect plan. Giving the
- * depth axis 2 extra metres lets those samples spread across the lower
- * third of the room instead of stacking on the wall edge.
+ * Kept under their old names so other modules importing them still compile.
+ * `FLOOR_LENGTH_M` was previously "horizontal on screen" (now Pi y),
+ * `FLOOR_DEPTH_M` was "vertical on screen" (now Pi x).
  */
-export const FLOOR_DEPTH_M = 14;
+export const FLOOR_LENGTH_M = PI_Y_RANGE_M;
+export const FLOOR_DEPTH_M = PI_X_RANGE_M;
 
 /** Building interior in viewBox pixels — matches the outline rect in Blueprint. */
 const VBOX_X0 = 50;
 const VBOX_Y0 = 90;
-const VBOX_W = 1100; // 1150 - 50
-const VBOX_H = 300; //  390 - 90
+const VBOX_X1 = 1150;
+const VBOX_Y1 = 390;
 
-const PX_PER_M_LONG = VBOX_W / FLOOR_LENGTH_M;
-const PX_PER_M_DEEP = VBOX_H / FLOOR_DEPTH_M;
+const PX_PER_M_HORIZONTAL = (VBOX_X1 - VBOX_X0) / PI_Y_RANGE_M;
+const PX_PER_M_VERTICAL = (VBOX_Y1 - VBOX_Y0) / PI_X_RANGE_M;
 
 export function metersToViewBox(xMeters: number, yMeters: number) {
-  // Clamp incoming Pi coords to the building footprint. Without this, noise
-  // / drift from the BLE triangulation can push samples a few metres past a
-  // wall and the dot (or heatmap cell) renders in the grey area outside the
-  // outline. Bump FLOOR_DEPTH_M / FLOOR_LENGTH_M above if you find that
-  // legitimate samples are getting clamped.
-  const x = Math.max(0, Math.min(FLOOR_DEPTH_M, xMeters));
-  const y = Math.max(0, Math.min(FLOOR_LENGTH_M, yMeters));
+  // Clamp Pi coords to the calibrated footprint so noise / drift from the
+  // BLE triangulation never renders outside the building outline.
+  const xc = Math.max(0, Math.min(PI_X_RANGE_M, xMeters));
+  const yc = Math.max(0, Math.min(PI_Y_RANGE_M, yMeters));
   return {
-    // Long-axis position (Pi's y) drives horizontal placement on the plan.
-    x: VBOX_X0 + y * PX_PER_M_LONG,
-    // Short-axis position (Pi's x) drives vertical placement on the plan.
-    y: VBOX_Y0 + x * PX_PER_M_DEEP,
+    // Pi y → viewBox X (horizontal). beacon 102 at (0, 8.5) hits the right edge.
+    x: VBOX_X0 + yc * PX_PER_M_HORIZONTAL,
+    // Pi x → viewBox Y (vertical). beacon 101 at (22, 0) hits the bottom edge.
+    y: VBOX_Y0 + xc * PX_PER_M_VERTICAL,
   };
 }
 
+
 /**
- * Backwards-compat guard: rows the in-app `/api/ble/signals/batch` route writes
- * are already in viewBox pixels because the centroid is computed over `ANCHORS`
- * in `trace.ts`. Tiny values are almost certainly meters from the Pi.
- *
- * Threshold of 40 is comfortably below `VBOX_X0` (50) so a viewBox value never
- * triggers it, while a meter value above 40 m is implausible for this floor.
+ * Backwards-compat guard: rows the in-app `/api/ble/signals/batch` route
+ * writes are already in viewBox pixels because the centroid is computed
+ * over `ANCHORS` in `trace.ts`. Tiny values are almost certainly meters
+ * from the Pi (since VBOX_X0 = 50, real viewBox values can never be < 40).
  */
 export function looksLikeMeters(x: number, y: number): boolean {
   return x < 40 && y < 40;

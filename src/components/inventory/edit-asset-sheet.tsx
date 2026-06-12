@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   CATEGORY_OPTIONS,
+  ITEM_TYPE_OPTIONS,
   STATUS_OPTIONS,
   type EquipmentCategory,
   type EquipmentStatus,
+  type ItemType,
 } from "@/lib/inventory/types";
 import {
   archiveAsset,
@@ -41,6 +43,7 @@ export type AssetDraft = {
   assignedToId: string;
   value: number;
   notes: string;
+  itemType: ItemType;
 };
 
 const EMPTY_DRAFT: AssetDraft = {
@@ -52,6 +55,7 @@ const EMPTY_DRAFT: AssetDraft = {
   assignedToId: "",
   value: 0,
   notes: "",
+  itemType: "inventory",
 };
 
 export function EditAssetSheet({
@@ -112,6 +116,7 @@ export function EditAssetSheet({
       assignedToId: draft.assignedToId || null,
       value: Number.isFinite(draft.value) ? draft.value : 0,
       notes: draft.notes,
+      itemType: draft.itemType,
     };
     startTransition(async () => {
       const res = isEdit && initial?.id
@@ -171,6 +176,26 @@ export function EditAssetSheet({
               className="h-11 rounded-lg bg-muted/60 text-sm"
             />
           </FieldGroup>
+
+          <div className="mt-6">
+            <FieldGroup label="Item Type" htmlFor="item-type">
+              <NativeSelect
+                id="item-type"
+                value={draft.itemType}
+                onChange={(v) => update("itemType", v as ItemType)}
+              >
+                {ITEM_TYPE_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </NativeSelect>
+              <p className="text-[11px] text-muted-foreground">
+                Assets are high-value tracked property; inventory is everything
+                else.
+              </p>
+            </FieldGroup>
+          </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4">
             <FieldGroup label="Category" htmlFor="cat">

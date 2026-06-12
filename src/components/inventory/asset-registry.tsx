@@ -25,12 +25,15 @@ import {
 } from "@/components/ui/table";
 import {
   ALL_CATEGORIES,
+  ALL_ITEM_TYPES,
   ALL_STATUSES,
   CATEGORY_LABEL,
+  ITEM_TYPE_LABEL,
   STATUS_OPTIONS,
   type Asset,
   type EquipmentCategory,
   type EquipmentStatus,
+  type ItemType,
 } from "@/lib/inventory/types";
 import { setAssetStatus } from "@/lib/inventory/actions";
 import { CATEGORY_VISUAL, STATUS_PILL } from "@/lib/inventory-data";
@@ -74,6 +77,7 @@ export function AssetRegistry({
   const [statusFilter, setStatusFilter] = useState<"all" | EquipmentStatus>(
     "all",
   );
+  const [typeFilter, setTypeFilter] = useState<"all" | ItemType>("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all"); // "all" | "unassigned" | uuid
 
   const filtered = useMemo(() => {
@@ -81,6 +85,7 @@ export function AssetRegistry({
     return rows.filter((r) => {
       if (categoryFilter !== "all" && r.category !== categoryFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (typeFilter !== "all" && r.itemType !== typeFilter) return false;
       if (assigneeFilter !== "all") {
         if (assigneeFilter === "unassigned") {
           if (r.assignedToId) return false;
@@ -103,7 +108,7 @@ export function AssetRegistry({
       }
       return true;
     });
-  }, [rows, query, categoryFilter, statusFilter, assigneeFilter]);
+  }, [rows, query, categoryFilter, statusFilter, typeFilter, assigneeFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -141,6 +146,7 @@ export function AssetRegistry({
     query !== "" ||
     categoryFilter !== "all" ||
     statusFilter !== "all" ||
+    typeFilter !== "all" ||
     assigneeFilter !== "all";
 
   return (
@@ -192,6 +198,11 @@ export function AssetRegistry({
           setStatusFilter(v);
           resetPage();
         }}
+        itemType={typeFilter}
+        onItemType={(v) => {
+          setTypeFilter(v);
+          resetPage();
+        }}
         assignee={assigneeFilter}
         onAssignee={(v) => {
           setAssigneeFilter(v);
@@ -203,6 +214,7 @@ export function AssetRegistry({
           setQuery("");
           setCategoryFilter("all");
           setStatusFilter("all");
+          setTypeFilter("all");
           setAssigneeFilter("all");
           resetPage();
         }}
@@ -214,6 +226,7 @@ export function AssetRegistry({
             <TableRow className="border-border/70 hover:bg-transparent">
               <Th>Asset ID</Th>
               <Th>Name / Category</Th>
+              <Th>Type</Th>
               <Th>Location</Th>
               <Th>Status</Th>
               <Th>Assigned To</Th>
@@ -225,7 +238,7 @@ export function AssetRegistry({
             {pageRows.length === 0 ? (
               <TableRow className="border-border/70 hover:bg-transparent">
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-12 text-center text-sm text-muted-foreground"
                 >
                   {filterActive
@@ -356,6 +369,9 @@ function AssetRowCells({
           </div>
         </div>
       </TableCell>
+      <TableCell className="py-5">
+        <TypePill itemType={row.itemType} tracked={row.beaconId !== null} />
+      </TableCell>
       <TableCell className="py-5 text-sm text-foreground">
         {row.location || "—"}
       </TableCell>
@@ -441,6 +457,37 @@ function InlineStatusSelect({
   );
 }
 
+/**
+ * Asset rows get a violet pill (plus a live-tracking dot when beacon-bound);
+ * plain inventory stays neutral so the registry reads at a glance.
+ */
+function TypePill({
+  itemType,
+  tracked,
+}: {
+  itemType: ItemType;
+  tracked: boolean;
+}) {
+  if (itemType === "asset") {
+    return (
+      <span
+        title={tracked ? "Beacon-tracked asset" : "Asset"}
+        className="inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-violet-800"
+      >
+        {tracked ? (
+          <span className="inline-block size-1.5 animate-pulse rounded-full bg-violet-600" />
+        ) : null}
+        Asset
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+      Inventory
+    </span>
+  );
+}
+
 function StatusPill({ status }: { status: EquipmentStatus }) {
   const s = STATUS_PILL[status];
   return (
@@ -504,6 +551,8 @@ function FilterBar({
   onCategory,
   status,
   onStatus,
+  itemType,
+  onItemType,
   assignee,
   onAssignee,
   staffOptions,
@@ -516,6 +565,8 @@ function FilterBar({
   onCategory: (v: "all" | EquipmentCategory) => void;
   status: "all" | EquipmentStatus;
   onStatus: (v: "all" | EquipmentStatus) => void;
+  itemType: "all" | ItemType;
+  onItemType: (v: "all" | ItemType) => void;
   assignee: string;
   onAssignee: (v: string) => void;
   staffOptions: StaffOption[];
@@ -554,6 +605,18 @@ function FilterBar({
           ...ALL_STATUSES.filter((s) => s !== "archived").map((s) => ({
             value: s,
             label: STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s,
+          })),
+        ]}
+      />
+
+      <SelectChip
+        value={itemType}
+        onChange={(v) => onItemType(v as "all" | ItemType)}
+        options={[
+          { value: "all", label: "All Types" },
+          ...ALL_ITEM_TYPES.map((t) => ({
+            value: t,
+            label: ITEM_TYPE_LABEL[t],
           })),
         ]}
       />
@@ -616,6 +679,7 @@ function toCsv(rows: Asset[]): string {
     "asset_code",
     "name",
     "category",
+    "item_type",
     "status",
     "location",
     "rfid_tag_id",
@@ -628,6 +692,7 @@ function toCsv(rows: Asset[]): string {
     r.assetCode,
     r.name,
     CATEGORY_LABEL[r.category],
+    ITEM_TYPE_LABEL[r.itemType],
     STATUS_OPTIONS.find((o) => o.value === r.status)?.label ?? r.status,
     r.location,
     r.rfidTagId,
@@ -656,5 +721,6 @@ export function assetToDraft(a: Asset): AssetDraft {
     assignedToId: a.assignedToId ?? "",
     value: a.value,
     notes: a.notes,
+    itemType: a.itemType,
   };
 }
