@@ -18,8 +18,16 @@
 
 /** Long axis (FABLAB ↔ PROTOTIPAZIONE). Pi's `y` is in this dimension. */
 export const FLOOR_LENGTH_M = 24;
-/** Short axis (room depth). Pi's `x` is in this dimension. */
-export const FLOOR_DEPTH_M = 8;
+/**
+ * Short axis (room depth). Pi's `x` is in this dimension.
+ *
+ * Bumped from 8 to 10 after the live heatmap showed the densest cluster
+ * pile up on the south wall: that means the Pi reports x-values up to
+ * ~9–10 m, not the 8 m I'd estimated from the architect plan. Giving the
+ * depth axis 2 extra metres lets those samples spread across the lower
+ * third of the room instead of stacking on the wall edge.
+ */
+export const FLOOR_DEPTH_M = 14;
 
 /** Building interior in viewBox pixels — matches the outline rect in Blueprint. */
 const VBOX_X0 = 50;
@@ -31,11 +39,18 @@ const PX_PER_M_LONG = VBOX_W / FLOOR_LENGTH_M;
 const PX_PER_M_DEEP = VBOX_H / FLOOR_DEPTH_M;
 
 export function metersToViewBox(xMeters: number, yMeters: number) {
+  // Clamp incoming Pi coords to the building footprint. Without this, noise
+  // / drift from the BLE triangulation can push samples a few metres past a
+  // wall and the dot (or heatmap cell) renders in the grey area outside the
+  // outline. Bump FLOOR_DEPTH_M / FLOOR_LENGTH_M above if you find that
+  // legitimate samples are getting clamped.
+  const x = Math.max(0, Math.min(FLOOR_DEPTH_M, xMeters));
+  const y = Math.max(0, Math.min(FLOOR_LENGTH_M, yMeters));
   return {
     // Long-axis position (Pi's y) drives horizontal placement on the plan.
-    x: VBOX_X0 + yMeters * PX_PER_M_LONG,
+    x: VBOX_X0 + y * PX_PER_M_LONG,
     // Short-axis position (Pi's x) drives vertical placement on the plan.
-    y: VBOX_Y0 + xMeters * PX_PER_M_DEEP,
+    y: VBOX_Y0 + x * PX_PER_M_DEEP,
   };
 }
 
