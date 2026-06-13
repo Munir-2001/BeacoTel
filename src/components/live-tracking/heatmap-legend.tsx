@@ -27,7 +27,7 @@ export function HeatmapLegend({
 
   return (
     <aside
-      className="pointer-events-auto absolute right-6 bottom-6 z-20 w-[260px] rounded-2xl bg-white/95 p-3.5 text-foreground shadow-md ring-1 ring-black/5"
+      className="pointer-events-auto absolute left-6 bottom-6 z-20 w-[260px] rounded-2xl bg-white/95 p-3.5 text-foreground shadow-md ring-1 ring-black/5"
       aria-label="Heatmap legend"
     >
       <header className="flex items-center justify-between">

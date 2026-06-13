@@ -5,12 +5,14 @@ import { ANCHORS } from "@/lib/positioning/trace";
 /**
  * BLE ingestion endpoint. The Raspberry-Pi gateway POSTs a batch of RSSI
  * readings per beacon → we compute the latest position with a single-frame
- * RSSI-weighted centroid (linear-power space) and:
+ * RSSI-weighted centroid (linear-power space) and UPSERT
+ * `beacon_live_positions` (one row per beacon, drives the Live map).
  *
- *  1. UPSERT `beacon_live_positions` (one row per beacon, drives the Live map)
- *  2. INSERT `beacon_position_history` if the beacon moved more than
- *     MIN_HISTORY_DISTANCE viewBox units since its last logged position
- *     (drives the heatmap; keeps history sparse instead of one row per packet)
+ * History + heatmap are derived entirely in the database from that one write:
+ * the `trg_live_to_history` trigger (migration 0020) logs movement to
+ * `beacon_position_history`, which `trg_heatmap_rollup` (0015) rolls into
+ * `heatmap_cells`. So any writer of beacon_live_positions (this route or the
+ * Pi directly) feeds the live map, the history log and the heatmap at once.
  *
  * The route is allow-listed in `proxy-session.ts` so it stays reachable
  * without a Supabase auth cookie — the bearer-token check below is the gate.
@@ -33,8 +35,6 @@ type Batch = {
 };
 
 const RSSI_FLOOR = -92;
-/** A beacon must move at least this many viewBox units before we log it. */
-const MIN_HISTORY_DISTANCE = 0.3;
 
 export async function POST(request: Request) {
   // Optional device-token check. If BLE_INGEST_TOKEN is set in the env, the
@@ -99,16 +99,6 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // Pull prior live rows so we know which beacons moved enough to log to history.
-  const beaconIds = positions.map((p) => p.beacon_id);
-  const { data: prior } = await admin
-    .from("beacon_live_positions")
-    .select("beacon_id, x, y")
-    .in("beacon_id", beaconIds);
-  const priorByBeacon = new Map(
-    (prior ?? []).map((r) => [r.beacon_id as number, r as { x: number; y: number }]),
-  );
-
   const now = new Date().toISOString();
   const liveRows = positions.map((p) => ({
     beacon_id: p.beacon_id,
@@ -119,21 +109,10 @@ export async function POST(request: Request) {
     last_seen: now,
   }));
 
-  const historyRows = positions
-    .filter((p) => {
-      const old = priorByBeacon.get(p.beacon_id);
-      if (!old) return true;
-      return Math.hypot(old.x - p.x, old.y - p.y) >= MIN_HISTORY_DISTANCE;
-    })
-    .map((p) => ({
-      beacon_id: p.beacon_id,
-      x: p.x,
-      y: p.y,
-      floor: 0,
-      confidence: p.confidence,
-      recorded_at: now,
-    }));
-
+  // Upsert live positions only. History + heatmap are derived in the database:
+  // the trg_live_to_history trigger (migration 0020) logs movement to
+  // beacon_position_history, which trg_heatmap_rollup (0015) rolls into
+  // heatmap_cells. Keeping that single source avoids double-logging.
   const { error: liveErr } = await admin
     .from("beacon_live_positions")
     .upsert(liveRows, { onConflict: "beacon_id" });
@@ -144,22 +123,10 @@ export async function POST(request: Request) {
     );
   }
 
-  if (historyRows.length > 0) {
-    const { error: histErr } = await admin
-      .from("beacon_position_history")
-      .insert(historyRows);
-    if (histErr) {
-      // Live write already succeeded — surface the history error but don't
-      // fail the whole request; the live UI keeps working without it.
-      console.error("[/api/ble/signals/batch] history insert failed", histErr);
-    }
-  }
-
   return NextResponse.json({
     status: "ok",
     processed: body.signals.length,
     computed: positions,
-    history_logged: historyRows.length,
     received_at: now,
   });
 }
