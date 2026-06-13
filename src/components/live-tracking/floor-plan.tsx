@@ -3,11 +3,11 @@
 import { useCallback, useRef, useState } from "react";
 import { Minus, Plus, Layers } from "lucide-react";
 import {
-  AnchorLayer,
   PlaybackControls,
   TraceOverlay,
   useBeaconPlayback,
 } from "@/components/live-tracking/beacon-playback";
+import { NodesLayer } from "@/components/live-tracking/nodes-layer";
 import {
   HeartbeatIndicator,
   LiveOverlay,
@@ -26,6 +26,9 @@ import { cn } from "@/lib/utils";
 const ZOOM_MIN = 0.6;
 const ZOOM_MAX = 2.5;
 const ZOOM_STEP = 0.2;
+
+/** The painting's beacon — tracked on the Inventory asset map, hidden here. */
+const ASSET_BEACON_ID = 77;
 
 type Mode = "live" | "replay" | "heatmap";
 
@@ -91,6 +94,10 @@ export function FloorPlan() {
 
   // Subscription only runs while in live mode — no Realtime traffic during replay.
   const live = useLiveBeacons({ enabled: mode === "live" });
+  // Beacon 77 is the tracked asset (the painting) shown on the Inventory asset
+  // map with its own geofence alarm — exclude it from people Live Tracking so
+  // it doesn't double-appear here.
+  const peopleBeacons = live.beacons.filter((b) => b.beacon_id !== ASSET_BEACON_ID);
 
   // Playback hook always mounts (it just loads a static file), but its effects
   // don't hit the network beyond the initial trace fetch.
@@ -104,8 +111,8 @@ export function FloorPlan() {
           <>
             <LiveStatusPill
               status={live.status}
-              liveCount={live.beacons.filter((b) => !b.stale).length}
-              staleCount={live.beacons.filter((b) => b.stale).length}
+              liveCount={peopleBeacons.filter((b) => !b.stale).length}
+              staleCount={peopleBeacons.filter((b) => b.stale).length}
             />
             <HeartbeatIndicator lastEventAt={live.lastEventAt} />
           </>
@@ -153,13 +160,13 @@ export function FloorPlan() {
         >
           <Blueprint />
           {mode === "live" ? (
-            <LiveOverlay beacons={live.beacons} />
+            <LiveOverlay beacons={peopleBeacons} />
           ) : mode === "replay" ? (
             <TraceOverlay positions={pb.positions} idx={pb.idx} />
           ) : (
             <HeatmapOverlay window={heatWindow} onStats={onHeatStats} />
           )}
-          <AnchorLayer rssiNow={mode === "replay" ? pb.currentRssi : {}} />
+          <NodesLayer />
         </div>
       </div>
 
