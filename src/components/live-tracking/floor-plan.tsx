@@ -157,11 +157,7 @@ export function FloorPlan() {
           ) : mode === "replay" ? (
             <TraceOverlay positions={pb.positions} idx={pb.idx} />
           ) : (
-            <HeatmapOverlay
-              window={heatWindow}
-              beaconFilter={null}
-              onStats={onHeatStats}
-            />
+            <HeatmapOverlay window={heatWindow} onStats={onHeatStats} />
           )}
           <AnchorLayer rssiNow={mode === "replay" ? pb.currentRssi : {}} />
         </div>

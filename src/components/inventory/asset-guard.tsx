@@ -226,10 +226,15 @@ export function AssetGuardOverlay({ states }: { states: GuardState[] }) {
 
 function GuardedAsset({ state }: { state: GuardState }) {
   const { asset, pos, phase, stale } = state;
-  const color = PHASE_COLOR[phase];
-  const breached = phase !== "secure";
-  // No live row yet — park the marker at home so the asset is still visible.
-  const at = pos ?? { x: asset.homeX, y: asset.homeY };
+  // Once acknowledged, the operator has recovered the asset and we write its
+  // beacon home — so render it home (green) immediately instead of waiting for
+  // the live position to round-trip, and drop the breach styling.
+  const recovered = phase === "acknowledged";
+  const color = PHASE_COLOR[recovered ? "secure" : phase];
+  const breached = phase !== "secure" && !recovered;
+  const home = { x: asset.homeX, y: asset.homeY };
+  // No live row yet (or just recovered) — park the marker at home.
+  const at = recovered ? home : pos ?? home;
 
   return (
     <g>

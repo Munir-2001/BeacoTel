@@ -26,6 +26,10 @@
  *
  * If the corner beacons ever move or you re-calibrate, just update the two
  * range constants below — the math re-aligns automatically.
+ *
+ * NOTE: `public.heatmap_cell_xy` in migration 0015 reimplements this same
+ * metres→viewBox mapping in SQL (for the heatmap rollup trigger). If you
+ * change the calibration here, update that function to match.
  */
 
 /** Range of Pi's `x` axis — the building length (left↔right on screen), metres. */
