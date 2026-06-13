@@ -14,7 +14,9 @@ const ASSET_BEACON_ID = 77;
  * corners — drop off, so the count reflects who's actually moving right now.
  */
 export function RecentlyActive() {
-  const { beacons } = useLiveBeacons({ enabled: true });
+  // Polls every 1.5s + realtime, so the list auto-updates as beacons come and
+  // go — no manual refresh.
+  const { beacons, status } = useLiveBeacons({ enabled: true, pollMs: 1500 });
 
   const staff = beacons
     .filter((b) => b.beacon_id !== ASSET_BEACON_ID && !b.stale)
@@ -22,8 +24,24 @@ export function RecentlyActive() {
 
   return (
     <div>
-      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <h3 className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Recently Active
+        <span
+          title={status === "connected" ? "Live" : status}
+          className={
+            "inline-block size-1.5 rounded-full " +
+            (status === "connected"
+              ? "bg-emerald-500 animate-pulse"
+              : status === "error"
+                ? "bg-red-500"
+                : "bg-amber-500 animate-pulse")
+          }
+        />
+        {staff.length > 0 ? (
+          <span className="ml-auto font-mono text-foreground">
+            {staff.length}
+          </span>
+        ) : null}
       </h3>
 
       {staff.length === 0 ? (
