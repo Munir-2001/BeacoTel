@@ -16,6 +16,7 @@ export type Resource =
   | "personal-portal"
   | "inventory"
   | "maintenance"
+  | "rfid-tracking"
   | "analytics"
   | "system-logs"
   | "rbac-settings";
@@ -31,6 +32,7 @@ export const ALL_RESOURCES: Resource[] = [
   "personal-portal",
   "inventory",
   "maintenance",
+  "rfid-tracking",
   "analytics",
   "system-logs",
   "rbac-settings",
@@ -43,6 +45,7 @@ export const RESOURCE_LABEL: Record<Resource, string> = {
   "personal-portal": "Personal Portal",
   "inventory": "Inventory & Assets",
   "maintenance": "Maintenance",
+  "rfid-tracking": "RFID Tracking",
   "analytics": "Analytics",
   "system-logs": "System Logs",
   "rbac-settings": "RBAC Settings",
@@ -55,6 +58,7 @@ export const RESOURCE_BY_ROUTE: Record<string, Resource> = {
   "/personal-portal": "personal-portal",
   "/inventory": "inventory",
   "/maintenance": "maintenance",
+  "/rfid-tracking": "rfid-tracking",
   "/analytics": "analytics",
   "/system-logs": "system-logs",
   "/rbac-settings": "rbac-settings",
@@ -75,6 +79,7 @@ export const PAGE_READ_ROLES: Record<Resource, Role[]> = {
   // their assigned equipment through the My Assets card on /personal-portal.
   "inventory": ["admin", "manager"],
   "maintenance": ["admin", "manager"],
+  "rfid-tracking": ["admin", "manager"],
   "analytics": ["admin", "manager"],
   "system-logs": ["admin", "manager"],
   "rbac-settings": ["admin"],

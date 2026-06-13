@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Minus, Plus, Layers } from "lucide-react";
 import {
   AnchorLayer,
@@ -21,6 +21,7 @@ import {
 } from "@/components/live-tracking/heatmap-overlay";
 import { HeatmapLegend } from "@/components/live-tracking/heatmap-legend";
 import { useLiveBeacons } from "@/lib/positioning/live-beacons";
+import { cn } from "@/lib/utils";
 
 const ZOOM_MIN = 0.6;
 const ZOOM_MAX = 2.5;
@@ -32,7 +33,6 @@ export function FloorPlan() {
   const [zoom, setZoom] = useState(1);
   const [mode, setMode] = useState<Mode>("live");
   const [heatWindow, setHeatWindow] = useState<HeatmapWindow>("24h");
-  const [heatBeacon, setHeatBeacon] = useState<number | null>(null);
   const [heatStats, setHeatStats] = useState<HeatmapStats>({
     sampleCount: 0,
     maxPerCell: 0,
@@ -45,6 +45,49 @@ export function FloorPlan() {
   );
   const atMax = zoom >= ZOOM_MAX - 0.001;
   const atMin = zoom <= ZOOM_MIN + 0.001;
+
+  // Click-and-drag panning. `pan` is a viewBox-pixel offset applied alongside
+  // the zoom scale; `drag` holds the gesture's start point + pan-at-start.
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0) return; // left button only
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    setPan({
+      x: d.panX + (e.clientX - d.startX),
+      y: d.panY + (e.clientY - d.startY),
+    });
+  }
+  function endDrag(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  }
+  function resetView() {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }
 
   // Subscription only runs while in live mode — no Realtime traffic during replay.
   const live = useLiveBeacons({ enabled: mode === "live" });
@@ -85,22 +128,28 @@ export function FloorPlan() {
         </span>
         <ModeToggle mode={mode} onChange={setMode} />
         {mode === "heatmap" ? (
-          <>
-            <HeatmapWindowPicker value={heatWindow} onChange={setHeatWindow} />
-            <HeatmapBeaconPicker
-              value={heatBeacon}
-              options={heatStats.uniqueBeacons}
-              onChange={setHeatBeacon}
-            />
-          </>
+          <HeatmapWindowPicker value={heatWindow} onChange={setHeatWindow} />
         ) : null}
       </div>
 
-      {/* Canvas: blueprint + trace overlay + anchors */}
+      {/* Canvas: blueprint + trace overlay + anchors. Drag to pan, zoom with
+          the controls. */}
       <div className="flex h-full items-center justify-center overflow-hidden">
         <div
-          className="relative aspect-[5/2] w-full max-w-[1100px] transition-transform duration-150 ease-out"
-          style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className={cn(
+            "relative aspect-[5/2] w-full max-w-[1100px] touch-none select-none",
+            dragging
+              ? "cursor-grabbing"
+              : "cursor-grab transition-transform duration-150 ease-out",
+          )}
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: "center",
+          }}
         >
           <Blueprint />
           {mode === "live" ? (
@@ -110,7 +159,7 @@ export function FloorPlan() {
           ) : (
             <HeatmapOverlay
               window={heatWindow}
-              beaconFilter={heatBeacon}
+              beaconFilter={null}
               onStats={onHeatStats}
             />
           )}
@@ -126,7 +175,7 @@ export function FloorPlan() {
           windowLabel={
             HEATMAP_WINDOWS.find((w) => w.value === heatWindow)?.label ?? heatWindow
           }
-          beaconFilter={heatBeacon}
+          beaconFilter={null}
         />
       ) : null}
 
@@ -146,7 +195,7 @@ export function FloorPlan() {
         >
           <Minus className="size-4" strokeWidth={2} />
         </ControlButton>
-        <ControlButton ariaLabel="Reset zoom" onClick={() => setZoom(1)}>
+        <ControlButton ariaLabel="Reset view" onClick={resetView}>
           <Layers className="size-4" strokeWidth={2} />
         </ControlButton>
       </div>
@@ -155,9 +204,9 @@ export function FloorPlan() {
 }
 
 function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  // Replay is intentionally omitted — not needed in the UI.
   const opts: { value: Mode; label: string }[] = [
     { value: "live", label: "Live" },
-    { value: "replay", label: "Replay" },
     { value: "heatmap", label: "Heatmap" },
   ];
   return (
@@ -206,42 +255,6 @@ function HeatmapWindowPicker({
         </button>
       ))}
     </div>
-  );
-}
-
-/**
- * Beacon selector for the heatmap. "All" merges every beacon's history into
- * one density grid; picking a single ID narrows to that beacon's traces.
- * Options come from the overlay's last fetch (distinct ids in the window),
- * so the list is always honest about what's in the DB.
- */
-function HeatmapBeaconPicker({
-  value,
-  options,
-  onChange,
-}: {
-  value: number | null;
-  options: number[];
-  onChange: (v: number | null) => void;
-}) {
-  return (
-    <label className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
-      <span className="text-foreground/55">Beacon</span>
-      <select
-        value={value == null ? "all" : String(value)}
-        onChange={(e) =>
-          onChange(e.target.value === "all" ? null : Number(e.target.value))
-        }
-        className="cursor-pointer bg-transparent text-[11px] font-semibold uppercase tracking-wider text-foreground focus:outline-none"
-      >
-        <option value="all">All ({options.length})</option>
-        {options.map((id) => (
-          <option key={id} value={id}>
-            #{id}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

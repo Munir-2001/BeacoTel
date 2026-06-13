@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, Radar } from "lucide-react";
+import { Radar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, type NavCta } from "@/lib/nav";
 import type { Resource, Role } from "@/lib/auth/permissions";
@@ -87,12 +87,6 @@ export function Sidebar({
       <div className="space-y-3 px-4 pb-6">
         {ctaVisible ? <CtaButton cta={cta!} /> : null}
         <ul className="space-y-1">
-          <li>
-            <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/75 hover:bg-secondary hover:text-foreground">
-              <LifeBuoy className="size-[18px] text-foreground/55" strokeWidth={1.75} />
-              Support
-            </button>
-          </li>
           <li>
             <LogoutButton />
           </li>

@@ -6,7 +6,6 @@ import {
   getRoleDistribution,
   getSigninActivity,
 } from "@/lib/analytics/people-activity";
-import { AnalyticsTabs } from "@/components/analytics/analytics-tabs";
 import { HeadcountCards } from "@/components/analytics/headcount-cards";
 import { SignInSparkline } from "@/components/analytics/signin-sparkline";
 import { DistributionBars } from "@/components/analytics/distribution-bars";
@@ -26,17 +25,14 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-6">
-        <div className="max-w-2xl">
-          <h1 className="text-[32px] font-semibold leading-[1.15] tracking-tight text-foreground">
-            Analytics
-          </h1>
-          <p className="mt-2 text-[15px] text-muted-foreground">
-            Workforce composition, sign-in trends, and equipment health at a
-            glance.
-          </p>
-        </div>
-        <AnalyticsTabs active="people" />
+      <header className="max-w-2xl">
+        <h1 className="text-[32px] font-semibold leading-[1.15] tracking-tight text-foreground">
+          Analytics
+        </h1>
+        <p className="mt-2 text-[15px] text-muted-foreground">
+          Workforce composition, sign-in trends, and equipment health at a
+          glance.
+        </p>
       </header>
 
       <HeadcountCards stats={headcount} />

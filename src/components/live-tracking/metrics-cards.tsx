@@ -3,22 +3,13 @@ import { Card } from "@/components/ui/card";
 import { REAL_TIME_METRICS } from "@/lib/mock-data";
 
 export function MetricsCards() {
-  const { activeStaff, densityAlerts } = REAL_TIME_METRICS;
+  const { densityAlerts } = REAL_TIME_METRICS;
   return (
     <div>
       <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Real-time Metrics
       </h3>
-      <div className="grid grid-cols-2 gap-3">
-        <MetricCard
-          label="Active Staff"
-          value={activeStaff.value}
-          trailing={
-            <span className="text-xs font-medium text-emerald-600">
-              +{activeStaff.deltaPct}%
-            </span>
-          }
-        />
+      <div className="grid grid-cols-1 gap-3">
         <MetricCard
           label="Density Alerts"
           value={densityAlerts.value.toString().padStart(2, "0")}

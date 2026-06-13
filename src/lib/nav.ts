@@ -11,6 +11,7 @@ import {
   Plus,
   Download,
   History,
+  Refrigerator,
   type LucideIcon,
 } from "lucide-react";
 import type { Resource, Role } from "@/lib/auth/permissions";
@@ -100,6 +101,18 @@ export const NAV_ITEMS: NavItem[] = [
       label: "Add Asset",
       icon: Plus,
       href: "/inventory?new=1",
+      requiredRoles: ["admin", "manager"],
+    },
+  },
+  {
+    label: "RFID Tracking",
+    href: "/rfid-tracking",
+    icon: Refrigerator,
+    resource: "rfid-tracking",
+    cta: {
+      label: "Register Tag",
+      icon: Plus,
+      href: "/rfid-tracking?new=1",
       requiredRoles: ["admin", "manager"],
     },
   },

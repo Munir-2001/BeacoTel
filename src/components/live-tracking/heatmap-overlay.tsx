@@ -10,10 +10,11 @@ const CELL = 30; // viewBox units per heatmap cell
 const COLS = Math.ceil(VIEWBOX_W / CELL);
 const ROWS = Math.ceil(VIEWBOX_H / CELL);
 
-export type HeatmapWindow = "1h" | "24h" | "7d";
+export type HeatmapWindow = "1h" | "6h" | "24h" | "7d";
 
 export const HEATMAP_WINDOWS: { value: HeatmapWindow; label: string }[] = [
   { value: "1h", label: "Last hour" },
+  { value: "6h", label: "Last 6h" },
   { value: "24h", label: "Last 24h" },
   { value: "7d", label: "Last 7 days" },
 ];
@@ -67,6 +68,7 @@ export function HeatmapOverlay({
 
     const since = new Date();
     if (window === "1h") since.setHours(since.getHours() - 1);
+    else if (window === "6h") since.setHours(since.getHours() - 6);
     else if (window === "24h") since.setHours(since.getHours() - 24);
     else since.setDate(since.getDate() - 7);
 

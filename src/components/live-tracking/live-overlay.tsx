@@ -35,7 +35,14 @@ export function LiveOverlay({ beacons }: { beacons: LiveBeacon[] }) {
             lastSeen={b.last_seen}
           />
         ) : (
-          <FreshDot key={b.beacon_id} x={x} y={y} beaconId={b.beacon_id} />
+          <FreshDot
+            key={b.beacon_id}
+            x={x}
+            y={y}
+            beaconId={b.beacon_id}
+            rawX={b.x}
+            rawY={b.y}
+          />
         );
       })}
     </svg>
@@ -46,10 +53,15 @@ function FreshDot({
   x,
   y,
   beaconId,
+  rawX,
+  rawY,
 }: {
   x: number;
   y: number;
   beaconId: number;
+  /** Raw Pi/DB coordinates (metres) — shown on the chip below the dot. */
+  rawX: number;
+  rawY: number;
 }) {
   return (
     <g>
@@ -69,6 +81,21 @@ function FreshDot({
       >
         {beaconId}
       </text>
+      {/* Coord chip — the beacon's live x, y straight from beacon_live_positions. */}
+      <g transform={`translate(${x}, ${y + 24})`}>
+        <rect x={-32} y={-9} width={64} height={16} rx={8} fill="#4C1D95" opacity="0.92" />
+        <text
+          x={0}
+          y={3}
+          fontSize="9"
+          fontWeight="700"
+          textAnchor="middle"
+          fill="#EDE9FE"
+          fontFamily="ui-sans-serif, system-ui"
+        >
+          {rawX.toFixed(1)}, {rawY.toFixed(1)}
+        </text>
+      </g>
     </g>
   );
 }
