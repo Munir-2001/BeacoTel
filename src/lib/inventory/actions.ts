@@ -42,7 +42,10 @@ const RELEASABLE_STATUSES: ReleasableStatus[] = [
 ];
 
 function validate(input: AssetInput): string | null {
-  if (!input.name.trim()) return "Name is required.";
+  const name = input.name.trim();
+  if (!name) return "Asset name is required.";
+  if (name.length < 2) return "Asset name must be at least 2 characters.";
+  if (name.length > 120) return "Asset name must be 120 characters or fewer.";
   if (!(ALL_CATEGORIES as readonly string[]).includes(input.category)) {
     return "Pick a valid category.";
   }
@@ -60,6 +63,9 @@ function validate(input: AssetInput): string | null {
   }
   if (!Number.isFinite(input.value) || input.value < 0) {
     return "Value must be a non-negative number.";
+  }
+  if (input.value > 100_000_000) {
+    return "Value looks too large — double-check the amount.";
   }
   // Mirrors the DB CHECK constraint (migrations 0007/0008): in_use ⇔ assigned.
   // Catch it here so the user sees a friendly message instead of a constraint

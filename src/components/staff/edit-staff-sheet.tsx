@@ -30,6 +30,8 @@ import {
   type CreateStaffState,
 } from "@/lib/staff/actions";
 import { ActivityTimeline } from "@/components/audit/activity-timeline";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { isValidEmail } from "@/lib/validation";
 import { cn } from "@/lib/utils";
 
 export type StaffDraft = {
@@ -84,6 +86,7 @@ export function EditStaffSheet({
 }) {
   const [draft, setDraft] = useState<StaffDraft>(initial ?? EMPTY_DRAFT);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -131,6 +134,22 @@ export function EditStaffSheet({
         onSaved();
       });
     } else {
+      // Validate the new-user inputs up front so the operator gets instant,
+      // field-specific feedback (the server re-checks as the real gate).
+      const email = draft.email.trim();
+      if (!draft.name.trim() || !email || !draft.password) {
+        setError("Name, email and password are all required.");
+        return;
+      }
+      if (!isValidEmail(email)) {
+        setError("Enter a valid email address, e.g. name@company.com.");
+        return;
+      }
+      if (draft.password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+
       // Create flow uses a FormData payload to match the server action shape.
       const fd = new FormData();
       fd.set("name", draft.name);
@@ -315,7 +334,7 @@ export function EditStaffSheet({
             <Button
               variant="secondary"
               className="h-11 flex-1 rounded-lg bg-secondary text-sm font-medium hover:bg-secondary/80 disabled:opacity-60"
-              onClick={handleDeactivate}
+              onClick={() => setConfirmDeactivate(true)}
               disabled={pending || isSelf}
               title={isSelf ? "You can't deactivate your own account" : ""}
             >
@@ -342,6 +361,28 @@ export function EditStaffSheet({
             {isEdit ? "Save Changes" : "Create User"}
           </Button>
         </footer>
+
+        <ConfirmDialog
+          open={confirmDeactivate}
+          tone="danger"
+          title="Deactivate this employee?"
+          message={
+            <>
+              <span className="font-semibold text-foreground">
+                {draft.name || "This user"}
+              </span>{" "}
+              will lose dashboard access immediately and any assigned assets
+              should be released. You can reactivate them later.
+            </>
+          }
+          confirmLabel="Deactivate"
+          pending={pending}
+          onCancel={() => setConfirmDeactivate(false)}
+          onConfirm={() => {
+            setConfirmDeactivate(false);
+            handleDeactivate();
+          }}
+        />
       </SheetContent>
     </Sheet>
   );

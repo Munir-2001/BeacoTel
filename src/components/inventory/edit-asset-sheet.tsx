@@ -27,7 +27,43 @@ import {
   updateAsset,
 } from "@/lib/inventory/actions";
 import { ActivityTimeline } from "@/components/audit/activity-timeline";
+import { cn } from "@/lib/utils";
 import type { StaffOption } from "./asset-registry";
+
+/** Per-field validation messages, keyed by the draft field they belong to. */
+type AssetErrors = Partial<Record<keyof AssetDraft, string>>;
+
+/**
+ * Client-side validation mirroring the server's `validate()` in
+ * inventory/actions.ts, but per-field so each input can show its own message.
+ * The server stays the authoritative gate.
+ */
+function validateDraft(d: AssetDraft): AssetErrors {
+  const e: AssetErrors = {};
+
+  const name = d.name.trim();
+  if (!name) e.name = "Asset name is required.";
+  else if (name.length < 2) e.name = "Name must be at least 2 characters.";
+  else if (name.length > 120) e.name = "Name must be 120 characters or fewer.";
+
+  if (!Number.isFinite(d.value)) e.value = "Enter the value as a number.";
+  else if (d.value < 0) e.value = "Value can’t be negative.";
+  else if (d.value > 100_000_000)
+    e.value = "That value looks too large — double-check it.";
+
+  const rfid = d.rfidTagId.trim();
+  if (rfid && !/^[A-Za-z0-9-]{3,}$/.test(rfid)) {
+    e.rfidTagId = "Letters, numbers and dashes only (min 3), e.g. RFID-401-SH.";
+  }
+
+  if (d.location.trim().length > 120)
+    e.location = "Location must be 120 characters or fewer.";
+
+  if (d.notes.length > 2000)
+    e.notes = "Notes must be 2000 characters or fewer.";
+
+  return e;
+}
 
 export type AssetDraft = {
   id?: string;
@@ -73,12 +109,14 @@ export function EditAssetSheet({
 }) {
   const [draft, setDraft] = useState<AssetDraft>(initial ?? EMPTY_DRAFT);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<AssetErrors>({});
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (open) {
       setDraft(initial ?? EMPTY_DRAFT);
       setError(null);
+      setErrors({});
     }
   }, [open, initial]);
 
@@ -87,6 +125,8 @@ export function EditAssetSheet({
 
   function update<K extends keyof AssetDraft>(key: K, value: AssetDraft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
+    // Clear this field's error as soon as the user starts fixing it.
+    setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
   }
 
   /**
@@ -107,6 +147,16 @@ export function EditAssetSheet({
 
   function handleSave() {
     setError(null);
+
+    // Validate before hitting the server; show per-field messages and stop.
+    const fieldErrors = validateDraft(draft);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+    setErrors({});
+
     const payload = {
       name: draft.name,
       category: draft.category,
@@ -173,8 +223,13 @@ export function EditAssetSheet({
               value={draft.name}
               onChange={(e) => update("name", e.target.value)}
               placeholder="e.g. Lutron Central Hub X1"
-              className="h-11 rounded-lg bg-muted/60 text-sm"
+              aria-invalid={Boolean(errors.name)}
+              className={cn(
+                "h-11 rounded-lg bg-muted/60 text-sm",
+                errors.name && ERROR_RING,
+              )}
             />
+            <FieldError msg={errors.name} />
           </FieldGroup>
 
           <div className="mt-6">
@@ -249,9 +304,14 @@ export function EditAssetSheet({
                   value={draft.rfidTagId}
                   onChange={(e) => update("rfidTagId", e.target.value)}
                   placeholder="RFID-000-XXX"
-                  className="h-11 rounded-lg bg-muted/60 pl-9 text-sm"
+                  aria-invalid={Boolean(errors.rfidTagId)}
+                  className={cn(
+                    "h-11 rounded-lg bg-muted/60 pl-9 text-sm",
+                    errors.rfidTagId && ERROR_RING,
+                  )}
                 />
               </div>
+              <FieldError msg={errors.rfidTagId} />
             </FieldGroup>
             <FieldGroup label="Location" htmlFor="loc">
               <Input
@@ -259,8 +319,13 @@ export function EditAssetSheet({
                 value={draft.location}
                 onChange={(e) => update("location", e.target.value)}
                 placeholder="e.g. Suite 401"
-                className="h-11 rounded-lg bg-muted/60 text-sm"
+                aria-invalid={Boolean(errors.location)}
+                className={cn(
+                  "h-11 rounded-lg bg-muted/60 text-sm",
+                  errors.location && ERROR_RING,
+                )}
               />
+              <FieldError msg={errors.location} />
             </FieldGroup>
           </div>
 
@@ -289,8 +354,13 @@ export function EditAssetSheet({
                 onChange={(e) =>
                   update("value", Number.parseFloat(e.target.value) || 0)
                 }
-                className="h-11 rounded-lg bg-muted/60 text-sm"
+                aria-invalid={Boolean(errors.value)}
+                className={cn(
+                  "h-11 rounded-lg bg-muted/60 text-sm",
+                  errors.value && ERROR_RING,
+                )}
               />
+              <FieldError msg={errors.value} />
             </FieldGroup>
           </div>
 
@@ -302,8 +372,13 @@ export function EditAssetSheet({
                 onChange={(e) => update("notes", e.target.value)}
                 placeholder="Enter maintenance notes or asset specifications..."
                 rows={5}
-                className="resize-none rounded-lg bg-muted/60 text-sm"
+                aria-invalid={Boolean(errors.notes)}
+                className={cn(
+                  "resize-none rounded-lg bg-muted/60 text-sm",
+                  errors.notes && ERROR_RING,
+                )}
               />
+              <FieldError msg={errors.notes} />
             </FieldGroup>
           </div>
 
@@ -355,6 +430,20 @@ export function EditAssetSheet({
         </footer>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** Error outline applied to an invalid input. */
+const ERROR_RING =
+  "ring-1 ring-destructive/70 focus-visible:ring-2 focus-visible:ring-destructive";
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="size-3 shrink-0" strokeWidth={2} />
+      {msg}
+    </p>
   );
 }
 

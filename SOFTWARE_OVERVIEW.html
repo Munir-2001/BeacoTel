@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beacotel — Software Overview (Frontend · Backend · Database)</title>
+<style>
+  :root {
+    --navy: #0F2A47; --teal: #0EA5A4; --indigo: #6366F1;
+    --ink: #1f2937; --muted: #64748b; --line: #e5e7eb; --bg: #f8fafc;
+    --code-bg: #f1f5f9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .page {
+    max-width: 880px; margin: 32px auto; background: #fff;
+    border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(15,42,71,.08);
+    padding: 56px 64px;
+  }
+  h1, h2, h3, h4 { color: var(--navy); line-height: 1.25; font-weight: 700; }
+  h1 {
+    font-size: 30px; margin: 0 0 6px;
+    border-bottom: 3px solid var(--teal); padding-bottom: 14px;
+  }
+  h2 {
+    font-size: 22px; margin: 38px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 { font-size: 17px; margin: 24px 0 8px; color: var(--indigo); }
+  p { margin: 10px 0; }
+  a { color: var(--indigo); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg); color: #0f172a;
+    padding: 2px 6px; border-radius: 6px;
+    font: 13.5px/1.4 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--navy); color: #e2e8f0; border-radius: 12px;
+    padding: 16px 18px; overflow-x: auto; font-size: 13px;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  blockquote {
+    margin: 14px 0; padding: 10px 16px; color: var(--navy);
+    background: #ecfeff; border-left: 4px solid var(--teal); border-radius: 8px;
+  }
+  ul, ol { margin: 10px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  li > ul, li > ol { margin: 4px 0; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14.5px;
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  }
+  thead th {
+    background: var(--navy); color: #fff; text-align: left;
+    padding: 10px 12px; font-weight: 600;
+  }
+  tbody td { padding: 10px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; border: none; margin: 0; max-width: none; padding: 0 12mm; }
+    h2 { break-after: avoid; } tr, blockquote, pre { break-inside: avoid; }
+    a { color: var(--ink); }
+  }
+</style>
+</head>
+<body>
+  <article class="page">
+<h1>Beacotel — Software Overview (Frontend · Backend · Database)</h1>
+<p>A friendly tour of how the <strong>software</strong> is built. Hardware/BLE ingestion is out of scope here — we only cover the web app (frontend), its server logic (backend), and the database. If you've never seen this stack before, read sections 1–4 first; the rest is reference.</p>
+<hr>
+<h2>1. What the app is</h2>
+<p>Beacotel is an <strong>indoor tracking + asset management dashboard</strong> for a FabLab. It shows, in real time on a floor plan:</p>
+<ul><li>where <strong>people (beacons)</strong> are (Live Tracking + a movement Heatmap),</li><li><strong>assets</strong> (e.g. a tracked painting) and alarms if one leaves its safe zone,</li><li><strong>RFID "soft assets"</strong> (fridge items) being withdrawn,</li><li>plus admin tooling: **Inventory, Staff Directory, RBAC, Analytics, System Logs,</li></ul>
+<p>  Personal Portal, Maintenance**.</p>
+<hr>
+<h2>2. The stack </h2>
+<table><thead><tr><th>Layer</th><th>Tech</th><th>What it means</th></tr></thead><tbody><tr><td><strong>Frontend</strong></td><td><strong>Next.js 16 (App Router) + React 19</strong></td><td>The UI — pages and components rendered in the browser.</td></tr><tr><td></td><td><strong>Tailwind CSS v4</strong></td><td>Styling via utility classes in <code>className</code>.</td></tr><tr><td></td><td><strong>lucide-react</strong></td><td>Icons. <strong>base-ui / shadcn-style</strong> primitives in <code>components/ui</code>.</td></tr><tr><td><strong>Backend</strong></td><td><strong>Next.js Server Actions + one API route</strong></td><td>Server-side functions (no separate server) that read/write the DB.</td></tr><tr><td><strong>Database</strong></td><td><strong>Supabase = hosted PostgreSQL</strong> + Auth + Realtime</td><td>Tables, SQL functions, triggers, row-level security, live updates.</td></tr></tbody></table>
+<p>There is <strong>no separate backend server</strong>. Next.js runs both the frontend and the backend logic. "Backend" here = <strong>Server Components</strong>, <strong>Server Actions</strong>, and SQL.</p>
+<hr>
+<h2>3. The three Next.js building blocks (important!)</h2>
+<p>Everything follows one of these three patterns:</p>
+<ol><li><strong>Server Components</strong> (default <code>page.tsx</code>) — run on the server, fetch data</li></ol>
+<p>   directly from the DB, send HTML to the browser. No <code>"use client"</code> at top.</p>
+<ol><li><strong>Client Components</strong> (<code>"use client"</code>) — run in the browser; handle clicks,</li></ol>
+<p>   state, realtime, animations.</p>
+<ol><li><strong>Server Actions</strong> (<code>"use server"</code>) — async functions a client component can</li></ol>
+<p>   call like an API; they run on the server and write to the DB. This is how    forms/buttons save data.</p>
+<p><strong>Typical flow:</strong> a page (Server Component) loads data → passes it to a Client Component → user clicks a button → button calls a Server Action → action writes to the DB and <code>revalidatePath()</code> refreshes the page.</p>
+<hr>
+<h2>4. Cross-cutting: Auth, RBAC, and DB access</h2>
+<h3>Authentication &amp; roles</h3>
+<ul><li><strong>Supabase Auth</strong> handles login/passwords/sessions (JWT in cookies).</li><li>Three roles (<code>app_role</code> enum): <strong>admin, manager, staff</strong>.</li><li>A <strong><code>permissions</code> table</strong> is the source of truth for "which role can do what"</li></ul>
+<p>  on each resource (page): <code>(role, resource, action)</code> where action ∈   read/create/update/delete.</p>
+<ul><li>The <strong>Data Access Layer</strong> <code>src/lib/auth/dal.ts</code> enforces it:<ul><li><code>requirePermission(resource, action)</code> — throws/redirects if not allowed.</li><li><code>hasPermission(...)</code> — boolean check (for conditionally showing UI).</li><li><code>getReadableResources()</code> — which pages a user may see (drives the sidebar).</li></ul></li><li><strong>Row-Level Security (RLS)</strong> in Postgres is the final gate — even if app code</li></ul>
+<p>  is wrong, the DB won't return rows a user shouldn't see. The SQL helper   <code>jwt_role()</code> reads the role from the signed token.</p>
+<blockquote>Mental model: <strong>3 gates</strong> — the proxy redirect (optimistic), <code>requirePermission</code> in the action/page (app-level), and RLS (database-level, authoritative).</blockquote>
+<h3>Two Supabase clients (<code>src/lib/supabase/</code>)</h3>
+<ul><li><code>client.ts</code> → <strong>browser</strong> client (anon key). Everything it does is constrained</li></ul>
+<p>  by RLS. Used by Client Components for realtime/live reads.</p>
+<ul><li><code>server.ts</code> → <strong>server</strong> client (honours the user's cookie/session) <strong>and</strong></li></ul>
+<p>  <code>createAdminClient()</code> (service-role key, bypasses RLS) for privileged writes   like creating users or audit logging. Service-role key never reaches the browser.</p>
+<hr>
+<h2>5. Design decisions — functional &amp; non-functional</h2>
+<p>"Functional" = <em>what</em> the software does and the choices behind those features. "Non-functional" = <em>how well</em> it does it (the quality attributes: security, performance, reliability, etc.). These are the decisions to defend in a review.</p>
+<h3>5.1 Functional decisions (what + why)</h3>
+<table><thead><tr><th>Decision</th><th>Why</th></tr></thead><tbody><tr><td><strong>Real-time floor plan</strong> (live dots) instead of a refresh-button list</td><td>An indoor-tracking product is only useful if positions update as people move.</td></tr><tr><td><strong>Pre-aggregated heatmap</strong> with selectable windows (1h/6h/24h/7d)</td><td>Operators want "where is it busy lately?" at a glance; windows answer different questions.</td></tr><tr><td><strong>Geofence alarm for high-value assets</strong> (warning → 4 s grace → red alarm + log)</td><td>Theft/loss prevention; the grace timer avoids false alarms from BLE jitter.</td></tr><tr><td><strong>RFID withdrawal tracking</strong> (snapshot diff → withdrawal/return events)</td><td>Tracks consumable "soft assets" leaving the fridge — a different problem than positioning.</td></tr><tr><td><strong>Two item types</strong> (<code>inventory</code> vs <code>asset</code>) on one <code>equipment</code> table</td><td>Most items are ordinary inventory; only a few are geofenced assets — one model, backward compatible.</td></tr><tr><td><strong>RBAC with an editable <code>permissions</code> matrix</strong> (not hard-coded roles)</td><td>Admins can change who-can-do-what without code changes.</td></tr><tr><td><strong>Audit log on every write</strong></td><td>Accountability + the System Logs / activity timeline come for free.</td></tr><tr><td><strong>Pseudonymous tracking</strong> (beacon IDs on the map, not names)</td><td>Privacy-by-design; identity is a separate, permissioned join.</td></tr><tr><td><strong>Personal Portal</strong> (self-service edit + release own assets)</td><td>Keeps staff out of admin pages while letting them manage their own data.</td></tr></tbody></table>
+<h3>5.2 Non-functional decisions (quality attributes + how we meet them)</h3>
+<table><thead><tr><th>Attribute</th><th>Decision / mechanism</th></tr></thead><tbody><tr><td><strong>Security &amp; privacy</strong></td><td>Postgres <strong>Row-Level Security</strong> as the final gate + app-level <code>requirePermission</code> + role-in-JWT (<code>jwt_role</code>); service-role key is <strong>server-only</strong>; passwords handled by Supabase Auth; tracking is pseudonymous.</td></tr><tr><td><strong>Performance</strong></td><td><strong>Pre-aggregation</strong>: the heatmap reads a small rollup (<code>heatmap_cells</code>, sparse grid × time buckets) instead of scanning raw history — bounded query size regardless of data volume.</td></tr><tr><td><strong>Reliability / availability</strong></td><td><strong>Graceful degradation</strong>: live UIs use Realtime <strong>plus a ~2 s polling fallback</strong>, so they keep working if the websocket drops; the pipeline is <strong>decoupled</strong> (live map keeps working even if the history/heatmap triggers fail); stale beacons are flagged, never silently wrong.</td></tr><tr><td><strong>Scalability / storage</strong></td><td>History is <strong>capped (≤ 1000 rows)</strong> and old heatmap buckets are <strong>prunable</strong> — storage stays bounded over time.</td></tr><tr><td><strong>Maintainability</strong></td><td>One <strong>consistent per-feature pattern</strong> (<code>page.tsx</code> + <code>components/&lt;f&gt;</code> + <code>lib/&lt;f&gt;/list.ts</code> + <code>actions.ts</code>); schema lives in <strong>ordered SQL migrations</strong>; shared helpers (<code>validation.ts</code>, <code>ui/confirm-dialog.tsx</code>) avoid duplication.</td></tr><tr><td><strong>Usability</strong></td><td><strong>Inline form validation</strong> with friendly messages (client for instant feedback, server as the gate); <strong>confirm dialogs</strong> for destructive actions; responsive realtime so the UI feels live.</td></tr><tr><td><strong>Data integrity</strong></td><td>DB <strong>CHECK constraints + triggers</strong> enforce invariants (e.g. an assigned asset must be <code>in_use</code>); validation mirrored client + server.</td></tr><tr><td><strong>Portability / cost</strong></td><td>Built entirely on <strong>managed Supabase</strong> (DB + Auth + Realtime) and Next.js — no servers to run; deployable to any Node/Vercel host.</td></tr></tbody></table>
+<blockquote>One-line summary: <strong>functionally</strong> it's a real-time, role-gated tracking + asset dashboard; <strong>non-functionally</strong> it favors privacy (RLS + pseudonymity)</blockquote>
+<hr>
+<h2>6. Features — frontend / backend / database</h2>
+<h3>6.1 Live Tracking &amp; Heatmap  (<code>/live-tracking</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/live-tracking/</code><ul><li><code>floor-plan.tsx</code> — the map shell: zoom, <strong>drag-to-pan</strong>, Live/Heatmap toggle.</li><li><code>live-overlay.tsx</code> — live beacon dots (shows beacon id + live x/y).</li><li><code>heatmap-overlay.tsx</code> + <code>heatmap-legend.tsx</code> — density heatmap (window picker</li></ul></li></ul>
+<p>    1h/6h/24h/7d).</p>
+<ul><li><code>nodes-layer.tsx</code> — fixed receiver nodes drawn from the <code>nodes</code> table.</li><li><code>recently-active.tsx</code> — one "Staff Member · Beacon #" row per live beacon.</li><li><code>floorplan/fablab-map.tsx</code> — the SVG floor plan.</li></ul>
+<ul><li><strong>Frontend logic:</strong> <code>lib/positioning/</code><ul><li><code>live-beacons.ts</code> → <strong><code>useLiveBeacons()</code></strong> hook: subscribes to Supabase</li></ul></li></ul>
+<p>    <strong>Realtime</strong> + polls every ~2 s; flags stale beacons.</p>
+<ul><li><code>coords.ts</code> → <code>toViewBox()</code> converts Pi metres → screen coordinates.</li></ul>
+<ul><li><strong>Database:</strong> reads <code>beacon_live_positions</code> (one row per beacon, live) and</li></ul>
+<p>  <code>heatmap_cells</code> (aggregated). Heatmap reads via the <strong><code>heatmap_window(since)</code></strong>   SQL function.</p>
+<ul><li><strong>Note:</strong> the data <em>into</em> <code>beacon_live_positions</code> comes from hardware ingestion</li></ul>
+<p>  (out of scope). Everything above just <strong>reads/visualizes</strong> it.</p>
+<h3>6.2 Inventory &amp; Asset geofence  (<code>/inventory</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/inventory/</code><ul><li><code>asset-registry.tsx</code> — the equipment table (search, filter, paginate, CSV).</li><li><code>edit-asset-sheet.tsx</code> — add/edit form <strong>with field validation</strong> (see §8).</li><li><code>floorplan-card.tsx</code> — the asset map.</li><li><code>asset-guard.tsx</code> + <code>asset-guard-provider.tsx</code> — <strong>geofence alarm</strong>: if a</li></ul></li></ul>
+<p>    tracked asset (e.g. beacon 77, the painting) leaves its safe radius → warning     popup → 4 s grace → red full-screen alarm + siren + audit log. The provider is     mounted app-wide so the alarm fires on any page.</p>
+<ul><li><strong>Backend:</strong> <code>lib/inventory/</code><ul><li><code>list.ts</code> → <code>listAssets()</code>, <code>listTrackedAssets()</code>, <code>getInventoryStats()</code>.</li><li><code>actions.ts</code> → <code>createAsset</code>, <code>updateAsset</code>, <code>archiveAsset</code>, <code>setAssetStatus</code>,</li></ul></li></ul>
+<p>    <code>releaseAsset</code>, <code>markInspected</code> (each validates + writes + audits).</p>
+<ul><li><code>alert-actions.ts</code> → <code>logAssetMovedAlert</code>, <code>returnAssetHome</code>,</li></ul>
+<p>    <code>listRecentAssetAlerts</code>.</p>
+<ul><li><strong>Database:</strong> <code>equipment</code> table (with <code>item_type</code> = inventory|asset, geofence</li></ul>
+<p>  columns <code>beacon_id/home_x/home_y/geofence_radius</code>).</p>
+<h3>6.3 RFID Tracking  (<code>/rfid-tracking</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/rfid/</code><ul><li><code>tag-registry.tsx</code> — table of tags → soft assets; Withdraw / delete (with a</li></ul></li></ul>
+<p>    <strong>confirm dialog</strong>).</p>
+<ul><li><code>withdrawal-feed.tsx</code> — live feed of withdrawals/returns (paginated 3/page).</li><li><code>register-tag-sheet.tsx</code> — register a new tagged item.</li></ul>
+<ul><li><strong>Frontend logic:</strong> <code>lib/rfid/live.ts</code> → <code>useWithdrawalFeed()</code>,</li></ul>
+<p>  <code>useTagChanges()</code> (realtime).</p>
+<ul><li><strong>Backend:</strong> <code>lib/rfid/</code> — <code>list.ts</code> (<code>listTags</code>, <code>listReaders</code>,</li></ul>
+<p>  <code>listRecentWithdrawals</code>, <code>getRfidStats</code>) and <code>actions.ts</code> (<code>recordWithdrawal</code>,   <code>returnTag</code>, <code>registerTag</code>, <code>unregisterTag</code>).</p>
+<ul><li><strong>Database:</strong> <code>rfid_tags</code>, <code>rfid_readers</code>, <code>rfid_withdrawal_events</code>.</li></ul>
+<h3>6.4 Staff Directory  (<code>/staff-directory</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/staff/</code> — <code>staff-directory-client.tsx</code>, <code>staff-table.tsx</code>,</li></ul>
+<p>  <code>edit-staff-sheet.tsx</code> (create/edit, <strong>email validation</strong>, deactivate with   <strong>confirm dialog</strong>), <code>stat-cards.tsx</code>.</p>
+<ul><li><strong>Backend:</strong> <code>lib/staff/</code> — <code>admin.ts</code> (<code>listStaff</code>, <code>getStaffStats</code>),</li></ul>
+<p>  <code>actions.ts</code> (<code>createStaff</code>, <code>updateStaff</code>, <code>setStaffActive</code>).</p>
+<ul><li><strong>Database:</strong> <code>profiles</code> (extends Supabase Auth users with name/role/department/</li></ul>
+<p>  employee_id/active).</p>
+<h3>6.5 RBAC Settings  (<code>/rbac-settings</code>, admin only)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/rbac/</code> — <code>users-panel.tsx</code> (add user / change role /</li></ul>
+<p>  activate), <code>permission-matrix.tsx</code> (toggle role×resource×action).</p>
+<ul><li><strong>Backend:</strong> <code>lib/auth/admin.ts</code> (<code>listUsers</code>, <code>listPermissions</code>) +</li></ul>
+<p>  <code>admin-actions.ts</code> (<code>createUser</code>, <code>updateUserRole</code>, <code>setUserActive</code>,   <code>togglePermission</code>).</p>
+<ul><li><strong>Database:</strong> <code>profiles</code> + <code>permissions</code>.</li></ul>
+<h3>6.6 Personal Portal  (<code>/personal-portal</code>, every user)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/personal-portal/</code> — edit own profile, see my assets,</li></ul>
+<p>  quick actions.</p>
+<ul><li><strong>Backend:</strong> <code>lib/personal-portal/</code> — <code>me.ts</code> (<code>getMyProfile</code>), <code>my-assets.ts</code></li></ul>
+<p>  (<code>listMyAssets</code>), <code>actions.ts</code> (<code>updateMyProfile</code>). Staff can release their own   assigned assets via <code>releaseMyAsset</code> (in inventory actions).</p>
+<h3>6.7 Analytics  (<code>/analytics</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/analytics/</code> — headcount cards, sign-in sparkline,</li></ul>
+<p>  department/role distribution bars, equipment mix.</p>
+<ul><li><strong>Backend:</strong> <code>lib/analytics/people-activity.ts</code> — <code>getHeadcount</code>,</li></ul>
+<p>  <code>getDeptDistribution</code>, <code>getRoleDistribution</code>, <code>getSigninActivity</code>,   <code>getEquipmentMix</code> (computed from <code>profiles</code>, <code>audit_logs</code>, <code>equipment</code>).</p>
+<h3>6.8 System Logs  (<code>/system-logs</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/system-logs/</code> — filterable, date-ranged event list.</li><li><strong>Backend:</strong> <code>lib/system-logs/list.ts</code> → <code>listAuditLogs()</code> reshapes <code>audit_logs</code></li></ul>
+<p>  rows into human-readable events.</p>
+<h3>6.9 Maintenance  (<code>/maintenance</code>)</h3>
+<ul><li><strong>Frontend:</strong> <code>components/maintenance/</code> — kanban-style board of equipment by</li></ul>
+<p>  status; reuses inventory actions (<code>setAssetStatus</code>, <code>markInspected</code>).</p>
+<h3>6.10 Audit logging (cross-cutting)</h3>
+<ul><li><code>lib/audit/log.ts</code> → <strong><code>recordAudit()</code></strong> is called by almost every write action</li></ul>
+<p>  to append to <code>audit_logs</code> (who/what/when/IP). <code>history.ts</code> + <code>me.ts</code> read it   for the activity timeline and the notification bell.</p>
+<hr>
+<h2>7. Database reference (<code>supabase/migrations/</code>)</h2>
+<p><strong>Tables</strong></p>
+<table><thead><tr><th>Table</th><th>Purpose</th></tr></thead><tbody><tr><td><code>profiles</code></td><td>users (name, role, department, employee_id, active) — extends Auth</td></tr><tr><td><code>permissions</code></td><td>RBAC matrix (role, resource, action)</td></tr><tr><td><code>audit_logs</code></td><td>append-only activity trail</td></tr><tr><td><code>equipment</code></td><td>inventory + tracked assets (item_type, geofence fields)</td></tr><tr><td><code>nodes</code></td><td>fixed BLE receiver positions (shown on map)</td></tr><tr><td><code>beacon_live_positions</code></td><td>one live row per beacon (read by Live Tracking)</td></tr><tr><td><code>beacon_position_history</code></td><td>raw movement log (capped ≤ 1000 rows)</td></tr><tr><td><code>heatmap_cells</code></td><td>aggregated heatmap (sparse grid × 15-min buckets)</td></tr><tr><td><code>rfid_tags</code> / <code>rfid_readers</code> / <code>rfid_withdrawal_events</code></td><td>RFID soft-asset tracking</td></tr></tbody></table>
+<p><strong>SQL functions</strong> — <code>jwt_role</code> (role from token, used by RLS), <code>handle_new_user</code> (auto-create profile on signup), <code>custom_access_token_hook</code> (put role in JWT), <code>next_asset_code</code> / <code>next_employee_id</code> (sequences), <code>heatmap_cell_xy</code> (position→grid cell), <code>heatmap_window</code> (read heatmap for a time window), <code>heatmap_rollup_on_history</code> / <code>beacon_live_to_history</code> / <code>cap_beacon_history</code> / <code>prune_beacon_history</code> (the data-pipeline + housekeeping).</p>
+<p><strong>Triggers</strong> — <code>on_auth_user_created</code> (signup → profile), <code>trg_live_to_history</code> (live update → history), <code>trg_heatmap_rollup</code> (history → heatmap counts), <code>trg_cap_beacon_history</code> (keep history ≤ 1000 rows).</p>
+<p><strong>Security model:</strong> every table has <strong>RLS</strong> enabled; reads are gated to <code>authenticated</code>, writes to admin/manager (or service-role) per <code>jwt_role()</code>.</p>
+<hr>
+<h2>8. Validation &amp; UX conventions</h2>
+<ul><li><code>lib/validation.ts</code> → <code>isValidEmail()</code> (shared by staff/user create, client + server).</li><li>Forms validate <strong>client-side for instant messages</strong> and **server-side as the</li></ul>
+<p>  real gate** (e.g. <code>edit-asset-sheet.tsx</code> shows per-field errors; <code>inventory/   actions.ts</code> <code>validate()</code> re-checks).</p>
+<ul><li><code>components/ui/confirm-dialog.tsx</code> → reusable <strong>SweetAlert-style confirm</strong> for</li></ul>
+<p>  destructive actions (employee deactivate, tag delete). Rendered via a React   portal so it always centers on screen.</p>
+<ul><li>Realtime UIs (<code>useLiveBeacons</code>, <code>useWithdrawalFeed</code>) use **Realtime + a polling</li></ul>
+<p>  fallback**, so they keep updating even if the websocket drops.</p>
+<hr>
+<h2>9. "Important functions" cheat-sheet</h2>
+<table><thead><tr><th>Function</th><th>File</th><th>Does</th></tr></thead><tbody><tr><td><code>requirePermission(resource, action)</code></td><td><code>lib/auth/dal.ts</code></td><td>gate a page/action by RBAC</td></tr><tr><td><code>getReadableResources()</code></td><td><code>lib/auth/dal.ts</code></td><td>which pages the sidebar shows</td></tr><tr><td><code>recordAudit(input)</code></td><td><code>lib/audit/log.ts</code></td><td>append to the audit trail</td></tr><tr><td><code>createClient()</code> / <code>createAdminClient()</code></td><td><code>lib/supabase/*</code></td><td>get a DB client (RLS / service-role)</td></tr><tr><td><code>listAssets()</code> / <code>createAsset()</code> / <code>updateAsset()</code></td><td><code>lib/inventory/*</code></td><td>inventory read/write</td></tr><tr><td><code>logAssetMovedAlert()</code> / <code>returnAssetHome()</code></td><td><code>lib/inventory/alert-actions.ts</code></td><td>geofence alarm + recover</td></tr><tr><td><code>useLiveBeacons()</code></td><td><code>lib/positioning/live-beacons.ts</code></td><td>live beacon stream (Realtime+poll)</td></tr><tr><td><code>recordWithdrawal()</code> / <code>registerTag()</code></td><td><code>lib/rfid/actions.ts</code></td><td>RFID withdrawals + registry</td></tr><tr><td><code>createStaff()</code> / <code>updateStaff()</code> / <code>setStaffActive()</code></td><td><code>lib/staff/actions.ts</code></td><td>staff CRUD</td></tr><tr><td><code>createUser()</code> / <code>togglePermission()</code></td><td><code>lib/auth/admin-actions.ts</code></td><td>RBAC admin</td></tr><tr><td><code>listAuditLogs()</code></td><td><code>lib/system-logs/list.ts</code></td><td>system logs feed</td></tr><tr><td><code>isValidEmail()</code></td><td><code>lib/validation.ts</code></td><td>email validation (client+server)</td></tr></tbody></table>
+<hr>
+<h2>10. How to run / explore</h2>
+<ul><li><code>npm run dev</code> — start the app. Pages live under <code>src/app/(dashboard)/</code>.</li><li>Database changes are SQL files in <code>supabase/migrations/</code>, applied in numeric</li></ul>
+<p>  order in the Supabase SQL editor.</p>
+<ul><li>To trace any feature: open its <code>page.tsx</code> → follow the <code>components/&lt;feature&gt;</code></li></ul>
+<p>  it renders → find the <code>lib/&lt;feature&gt;/actions.ts</code> the buttons call → see which   table it touches. &lt;/content&gt;</p>
+  </article>
+</body>
+</html>

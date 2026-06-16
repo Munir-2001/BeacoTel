@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { recordWithdrawal, unregisterTag } from "@/lib/rfid/actions";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTagChanges } from "@/lib/rfid/live";
 import { rfidCategoryLabel, type RfidReader, type RfidTag } from "@/lib/rfid/types";
 import { cn } from "@/lib/utils";
@@ -165,6 +166,7 @@ function TagRow({
   onChanged: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
@@ -236,13 +238,39 @@ function TagRow({
             )}
             <button
               aria-label={`Unregister ${tag.epc}`}
-              onClick={() => run(() => unregisterTag(tag.id))}
+              onClick={() => setConfirmDelete(true)}
               disabled={pending}
               className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-50"
             >
               <Trash2 className="size-4" strokeWidth={2} />
             </button>
           </div>
+
+          <ConfirmDialog
+            open={confirmDelete}
+            tone="danger"
+            title="Unregister this tag?"
+            message={
+              <>
+                <span className="font-semibold text-foreground">
+                  {tag.productName}
+                </span>{" "}
+                (<span className="font-mono">{tag.epc}</span>) will be removed
+                from the registry. Past withdrawal events are kept. This can’t
+                be undone.
+              </>
+            }
+            confirmLabel="Unregister"
+            pending={pending}
+            onCancel={() => setConfirmDelete(false)}
+            onConfirm={() =>
+              run(async () => {
+                const res = await unregisterTag(tag.id);
+                if (res.ok) setConfirmDelete(false);
+                return res;
+              })
+            }
+          />
         </TableCell>
       ) : null}
     </TableRow>

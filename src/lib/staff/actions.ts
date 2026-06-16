@@ -6,6 +6,7 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/dal";
 import { recordAudit } from "@/lib/audit/log";
 import { ALL_ROLES, type Role } from "@/lib/auth/permissions";
 import { ALL_DEPARTMENTS, type Department } from "@/lib/staff-data";
+import { isValidEmail } from "@/lib/validation";
 
 function asDepartment(raw: string | null | undefined): Department | null {
   if (!raw) return null;
@@ -46,8 +47,8 @@ export async function createStaff(
   if (!name || !email || !password) {
     return { ok: false, error: "Name, email and password are all required." };
   }
-  if (!email.includes("@")) {
-    return { ok: false, error: "Enter a valid email address." };
+  if (!isValidEmail(email)) {
+    return { ok: false, error: "Enter a valid email address, e.g. name@company.com." };
   }
   if (password.length < 8) {
     return { ok: false, error: "Password must be at least 8 characters." };

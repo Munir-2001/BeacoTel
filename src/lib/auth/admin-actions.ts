@@ -12,6 +12,7 @@ import {
   type Resource,
   type Role,
 } from "@/lib/auth/permissions";
+import { isValidEmail } from "@/lib/validation";
 
 export type ActionResult = { ok: boolean; error?: string };
 export type CreateUserState = { ok: boolean; error: string | null };
@@ -39,8 +40,8 @@ export async function createUser(
   if (!name || !email || !password) {
     return { ok: false, error: "Name, email and password are all required." };
   }
-  if (!email.includes("@")) {
-    return { ok: false, error: "Enter a valid email address." };
+  if (!isValidEmail(email)) {
+    return { ok: false, error: "Enter a valid email address, e.g. name@company.com." };
   }
   if (password.length < 8) {
     return { ok: false, error: "Password must be at least 8 characters." };
